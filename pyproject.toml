@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "geosss"
+version = "0.1.0"
+description = "Geodesic slice sampling on the sphere"
+authors = ["Shantanu Kodgirwar <shantanu.kodgirwar@uni-jena.de>", 
+           "Michael Habeck <michael.habeck@uni-jena.de>",
+           "Mareike Hasenpflug <mareike.hasenpflug@uni-passau.de>",
+           "Daniel Rudolf <daniel.rudolf@uni-passau.de>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9, <3.11"
+scipy = "^1.11.1"
+numpy = "^1.25.1"
+matplotlib = "^3.7.2"
+seaborn = "^0.12.2"
+csb = "^1.2.5"
+tsp-solver = "^0.1"
+arviz = "^0.15.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

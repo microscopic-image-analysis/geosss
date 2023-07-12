@@ -1,0 +1,10 @@
+# vscode files
+.vscode
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# lock file
+*.lock
