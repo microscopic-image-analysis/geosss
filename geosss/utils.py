@@ -1,10 +1,31 @@
+import contextlib
+import time
 from functools import wraps
 
 import numpy as np
 from csb.numeric import log
 
-from .mcmc import (MetropolisHastings, RejectionSphericalSliceSampler,
+from geosss.mcmc import (MetropolisHastings, RejectionSphericalSliceSampler,
                    ShrinkageSphericalSliceSampler, SphericalHMC)
+
+
+def format_time(t):
+
+    units = [(1., 's'), (1e-3, 'ms'), (1e-6, 'us'), (1e-9, 'ns')]
+    for scale, unit in units:
+        if t > scale or t == 0:
+            break
+
+    return '{0:.1f} {1}'.format(t/scale, unit)
+
+
+@contextlib.contextmanager
+def take_time(desc, mute=False):
+    t0 = time.process_time()
+    yield
+    dt = time.process_time() - t0
+    if not mute:
+        print('{0} took {1}'.format(desc, format_time(dt)))
 
 
 def relative_entropy(p, q):
