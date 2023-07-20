@@ -11,7 +11,7 @@ This Python package implements two new tuning-free MCMC algorithms **Rejection S
 
 As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed standard MCMC algorithms such as random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) for spherical distributions. The package also includes the implementation of RWMH and a fine-tuned HMC.  
 
-Example: Comparing our samplers (top row) vs RWMH and HMC (bottom row) for a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=100$ using $10^3$ samples. Our samplers explore all modes, while RWMH and HMC get stuck in a single mode. Check the full demo under [demo_vMF.py](). 
+Example: Comparing our samplers (top row) vs RWMH and HMC (bottom row) for a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$ using $10^3$ samples. Our samplers explore all modes, while RWMH and HMC gets stuck in a single mode. Check the full demo under [demo_vMF.py](). 
 
 ![animation_vMF](https://github.com/ShantanuKodgirwar/geosss/blob/main/assets/anim_vMF.gif)
 
@@ -81,7 +81,7 @@ for i, method in enumerate(methods):
 gs.compare_samplers_3d(pdf, samples)
 ```
 
-The plots in the paper under numerical illustrations section were generated using [bingham.py](), [mixture_vMF.py]() and [curve_vMF.py]().
+The plots in the paper under numerical illustrations section were generated using [bingham.py](), [mixture_vMF.py]() and [curve.py]().
 
 ## Development
 
