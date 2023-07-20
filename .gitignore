@@ -8,3 +8,15 @@ __pycache__/
 
 # lock file
 *.lock
+
+# large files
+results/*
+
+# jupyter notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# virtualenv
+.venv
+venv/
+ENV/
