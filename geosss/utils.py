@@ -3,6 +3,9 @@ from functools import wraps
 import numpy as np
 from csb.numeric import log
 
+from .mcmc import (MetropolisHastings, RejectionSphericalSliceSampler,
+                   ShrinkageSphericalSliceSampler, SphericalHMC)
+
 
 def relative_entropy(p, q):
     """Kullback-Leibler divergence (aka as relative entropy). """
@@ -102,3 +105,55 @@ def counter(method_names):
         return cls
 
     return class_decorator
+
+
+class SamplerLauncher:
+    """Just an interface for launching all the samplers
+    """
+
+    def __init__(self, pdf, initial, n_samples, burnin=0.2, seed=None):
+        self.pdf = pdf
+        self.initial = initial
+        self.n_samples = n_samples
+        self.burnin = burnin
+        self.seed = seed
+
+    def run_sss_reject(self):
+        sampler = RejectionSphericalSliceSampler(
+            self.pdf, self.initial, self.seed)
+        self.rsss = sampler
+
+        return sampler.sample(self.n_samples, burnin=self.burnin)
+
+    def run_sss_shrink(self):
+        sampler = ShrinkageSphericalSliceSampler(
+            self.pdf, self.initial, self.seed)
+        self.ssss = sampler
+
+        return sampler.sample(self.n_samples, burnin=self.burnin)
+
+    def run_rwmh(self):
+        sampler = MetropolisHastings(
+            self.pdf, self.initial, self.seed, stepsize=1e-1)
+        self.rwmh = sampler
+
+        return sampler.sample(self.n_samples, burnin=self.burnin)
+
+    def run_hmc(self):
+        sampler = SphericalHMC(self.pdf, self.initial,
+                               self.seed, stepsize=1e-1)
+        self.hmc = sampler
+
+        return sampler.sample(self.n_samples, burnin=self.burnin)
+
+    def run(self, method):
+        if method == 'sss-reject':
+            return self.run_sss_reject()
+        elif method == 'sss-shrink':
+            return self.run_sss_shrink()
+        elif method == 'rwmh':
+            return self.run_rwmh()
+        elif method == 'hmc':
+            return self.run_hmc()
+        else:
+            raise ValueError(f'method {method} not known')
