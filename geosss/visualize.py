@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import Normalize
 
-from .distributions import Distribution
+from geosss.distributions import Distribution
 
 METHODS = ('sss-reject', 'sss-shrink', 'rwmh', 'hmc')
 ALGOS = {'sss-reject': 'geoSSS (reject)', 'sss-shrink': 'geoSSS (shrink)',

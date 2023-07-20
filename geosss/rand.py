@@ -5,8 +5,8 @@ distribution.
 import numpy as np
 from scipy.optimize import brentq
 
-from . import distributions as dist
-from . import sphere
+from geosss import distributions as dist
+from geosss import sphere
 
 
 def rotate_north(u):

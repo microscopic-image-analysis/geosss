@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from csb.io import dump, load
 
-from .utils import acf, distance
+from geosss.sphere import distance
+from geosss.utils import acf
 
 METHODS = ['sss-reject', 'sss-shrink', 'rwmh', 'hmc']
 ALGOS = {'sss-reject': 'geoSSS (reject)',

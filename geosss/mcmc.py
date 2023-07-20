@@ -6,7 +6,7 @@ General purpose Markov chain Monte Carlo algorithms:
 """
 import numpy as np
 
-from . import sphere
+from geosss import sphere
 
 
 def determine_burnin(n_samples, burnin):

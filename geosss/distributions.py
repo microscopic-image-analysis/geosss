@@ -6,8 +6,8 @@ import functools
 import numpy as np
 from scipy.special import i0, ive, logsumexp
 
-from . import sphere
-from .utils import counter
+from geosss import sphere
+from geosss.utils import counter
 
 
 class Distribution:
