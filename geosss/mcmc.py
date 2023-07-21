@@ -63,7 +63,7 @@ class Sampler:
         burnin = determine_burnin(n_samples, burnin)
 
         # simulate Markov chain
-        samples = []
+        samples = [self.state]
         while len(samples) < (n_samples + burnin):
             samples.append(np.copy(next(self)))
 
