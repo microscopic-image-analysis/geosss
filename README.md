@@ -7,11 +7,11 @@ https://doi.org/10.48550/arXiv.2301.08056)
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
-This Python package implements two new tuning-free MCMC algorithms **Rejection Spherical Slice Sampler** and **Shrinkage Spherical Slice Sampler** to sample from spherical distributions on arbitrary dimensions.
+This Python package implements two new tuning-free MCMC algorithms, an ideal geodesic slice sampler based on accept/reject strategy and a shrinkage-based geodesic slice sampler to sample from spherical distributions on arbitrary dimensions. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automaticall tuned.
 
-As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed standard MCMC algorithms such as random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) for spherical distributions. The package also includes the implementation of RWMH and a fine-tuned HMC.  
+As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for spherical distributions. This demo quickly illustrates that. 
 
-Example: Comparing our samplers (top row) vs RWMH and HMC (bottom row) for a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$ using $10^3$ samples. Our samplers explore all modes, while RWMH and HMC gets stuck in a single mode. Check the full demo under [`demo_vMF.py`](scripts/demo_vMF.py). 
+We compare our samplers GeoSSS (reject) and GeoSSS (shrink) (top row) vs RWMH and HMC (bottom row) for a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$ using $10^3$ samples. Our samplers explore all modes, while RWMH and HMC gets stuck in a single mode. Check the full demo under [`demo_vMF.py`](scripts/demo_vMF.py). 
 
 
 ![animation_vMF](assets/animation_vMF.gif)
@@ -20,11 +20,11 @@ Example: Comparing our samplers (top row) vs RWMH and HMC (bottom row) for a tar
 
 GeoSSS is available for installation from PyPI (TODO: Add a link here later). Therefore, simply type:
 ```
+# TODO: not yet on PyPI
 pip install geosss
 ```
 
 ## Usage
-The plots in the paper under numerical illustrations section were generated using [`bingham.py`](scripts/bingham.py), [`mixture_vMF.py`](scripts/mixture_vMF.py), [`ess_vMF.py`](scripts/ess_vMF.py) and [`curve.py`](scripts/curve.py).
 
 However, a minimal example to get started with using the samplers is as below:
 ```python
@@ -82,6 +82,8 @@ for i, method in enumerate(methods):
 # visualize samples in 3d
 gs.compare_samplers_3d(pdf, samples)
 ```
+
+The plots in the [paper](https://doi.org/10.48550/arXiv.2301.08056) under numerical illustrations section were generated using [`bingham.py`](scripts/bingham.py), [`mixture_vMF.py`](scripts/mixture_vMF.py), [`ess_vMF.py`](scripts/ess_vMF.py) and [`curve.py`](scripts/curve.py).
 
 ## Development
 
