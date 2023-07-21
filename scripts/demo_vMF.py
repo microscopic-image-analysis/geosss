@@ -11,6 +11,15 @@ algos = {'sss-reject': 'geoSSS (reject)', 'sss-shrink': 'geoSSS (shrink)',
 
 
 def show_sphere(pdf: gs.Distribution, n_grid: int = 100):
+    """
+    Util function for `animate_vMF` that shows four spheres as surface 
+    plots with a colormap based on the pdf. 
+
+    Args:
+        pdf (gs.Distribution): probability density function
+        n_grid (int, optional): no. of grid on the sphere. Defaults to 100.
+
+    """
 
     sph2cart, pdf_vals = gs.sphere_pdf(n_grid, pdf)
     pdfnorm = Normalize(vmin=pdf_vals.min(), vmax=pdf_vals.max())
@@ -36,23 +45,46 @@ def show_sphere(pdf: gs.Distribution, n_grid: int = 100):
 def animate_vMF(
         pdf: gs.Distribution,
         samples: dict,
+        frames: int = 20,
         fps: int = 20,
-        save_animation: bool = False,
-        filename: str = "animation_vMF"
+        save_anim: bool = False,
+        savepath: str = "results/animation_vMF"
 ):
+    """
+    Generates animation for samples on a 2-sphere using the
+    four sampling methods in the package defined 
+
+    Args:
+        pdf (gs.Distribution): probability density function
+        samples (dict): samples saved as dict from the four samplers
+        frames (int, optional): number of frames. Defaults to 20.
+        fps (int, optional): frames per second. Defaults to 20.
+        save_anim (bool, optional): whether to save animation. Defaults to False.
+        savepath (str, optional): directory to save the animation. Defaults to "results/animation_vMF".
+
+    """
+
+    # determine which samples to show
+    n_samples = np.max([len(samples[method]) for method in methods])
+    frame_range = np.linspace(1, n_samples, frames, dtype=int)
 
     fig, axes = show_sphere(pdf, 100)
 
-    def update(frame):
+    def update(idx):
+        # sample index updates faster
+        samples_idx = frame_range[idx]
+
         for ax, method in zip(axes.flat, methods):
-            x = samples[method][:frame*20]
+            x = samples[method][:samples_idx]
             ax.scatter(*x.T, c='tab:red', s=1, alpha=0.2, zorder=2)
 
-    anim = FuncAnimation(fig, update, frames=50, interval=1)
+    anim = FuncAnimation(fig, update, frames=frames, interval=1)
 
-    if save_animation:
-        anim.save(f"results/{filename}.gif",
-                  fps=fps, dpi=300, writer="pillow")
+    if save_anim:
+        anim.save(f"{savepath}",
+                  fps=fps, writer="pillow")
+
+    return anim
 
 
 if __name__ == '__main__':
@@ -62,7 +94,7 @@ if __name__ == '__main__':
     d = 3                          # dimension
     K = 3                          # number of mixture components
     kappa = 80.0                   # concentration parameter
-    run_anim = False               # animation from README (Warning: very slow)
+    run_anim = False               # switch to generate animation in README
 
     # mus of mixture components
     mus = np.array([[0.86981638, -0.37077248,  0.32549536],
@@ -94,17 +126,22 @@ if __name__ == '__main__':
     for method in methods:
         samples[method] = launcher.run(method)
 
-    # visualize samples in 3d
-    gs.compare_samplers_3d(pdf, samples)
-
-    # sampling animation demo as gif (warning: slow)
     if run_anim:
         # animation params
-        save_anim = False           # whether to save animation
-        filename = "animation_vMF"  # filename of the gif file
-        fps = 10                    # frames per second
+        save_anim = True           # whether to save animation
+        frames = 10                # no. of frames (set it relatively low)
+        fps = 10                   # frames per second
+
+        # directory to save the result
+        savepath = "results/animation_vMF.gif"
 
         # run animation
-        animate_vMF(pdf, samples, fps, save_anim, filename)
+        anim = animate_vMF(
+            pdf,
+            samples,
+            fps=fps,
+            save_anim=save_anim,
+            savepath=savepath)
 
-    plt.show()
+    # visualize samples in 3d
+    gs.compare_samplers_3d(pdf, samples)
