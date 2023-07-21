@@ -3,7 +3,32 @@ import numpy as np
 from csb.statistics import autocorrelation
 
 import geosss as gs
-from geosss.sampling import KacWalk
+
+
+class KacWalk:
+    """KacWalk
+
+    Generalized KacWalk. 
+    """
+
+    def __init__(self, start, prob_angle=None):
+        if prob_angle is None:
+            def prob_angle(): return np.pi / 2
+        self.prob_angle = prob_angle
+        if isinstance(start, int):
+            start = gs.sphere.sample_sphere(start)
+        self.state = start
+
+    def __next__(self):
+
+        v = self.state
+        u = gs.sphere.sample_subsphere(v)
+        theta = self.prob_angle()
+
+        self.state = np.cos(theta) * v + np.sin(theta) * u
+
+        return self.state
+
 
 if __name__ == '__main__':
 
