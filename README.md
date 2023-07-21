@@ -13,7 +13,7 @@ As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorith
 
 Example: Comparing our samplers (top row) vs RWMH and HMC (bottom row) for a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$ using $10^3$ samples. Our samplers explore all modes, while RWMH and HMC gets stuck in a single mode. Check the full demo under [demo_vMF.py](). 
 
-![animation_vMF](https://github.com/ShantanuKodgirwar/geosss/blob/main/assets/anim_vMF.gif)
+![animation_vMF](https://github.com/ShantanuKodgirwar/geosss/blob/main/assets/animation_vMF.gif)
 
 ## Installation
 
