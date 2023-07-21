@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "geosss"
 version = "0.1.0"
-description = "Geodesic slice sampling on the sphere"
-authors = ["Shantanu Kodgirwar <shantanu.kodgirwar@uni-jena.de>", 
-           "Michael Habeck <michael.habeck@uni-jena.de>",
+description = "Python package implementing an ideal and shrinkage-based geodesic slice samplers on the sphere."
+authors = ["Michael Habeck <michael.habeck@uni-jena.de>",
+           "Shantanu Kodgirwar <shantanu.kodgirwar@uni-jena.de>", 
            "Mareike Hasenpflug <mareike.hasenpflug@uni-passau.de>",
            "Daniel Rudolf <daniel.rudolf@uni-passau.de>"]
-license = "MIT"
+license = "BSD-3-Clause"
 readme = "README.md"
 
 [tool.poetry.dependencies]
