@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "geosss"
-version = "0.1.0"
+version = "0.1.1"
 description = "Python package implementing an ideal and shrinkage-based geodesic slice sampling on the sphere."
 authors = ["Michael Habeck <michael.habeck@uni-jena.de>",
            "Shantanu Kodgirwar <shantanu.kodgirwar@uni-jena.de>", 
@@ -8,6 +8,7 @@ authors = ["Michael Habeck <michael.habeck@uni-jena.de>",
            "Daniel Rudolf <daniel.rudolf@uni-passau.de>"]
 license = "BSD-3-Clause"
 readme = "README.md"
+repository = "https://github.com/microscopic-image-analysis/geosss"
 
 [tool.poetry.dependencies]
 python = ">=3.9, <3.13"
