@@ -20,3 +20,6 @@ results/*
 .venv
 venv/
 ENV/
+
+# packaging
+dist/
