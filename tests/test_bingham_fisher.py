@@ -11,7 +11,7 @@ import matplotlib.pylab as plt
 import numpy as np
 
 import geosss as gs
-from geosss.sampling import metropolis_hastings, slice_sampling
+from geosss.testing import metropolis_hastings, slice_sampling
 
 if __name__ == '__main__':
 
