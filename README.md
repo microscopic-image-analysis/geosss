@@ -83,7 +83,7 @@ The plots in the [paper](https://doi.org/10.48550/arXiv.2301.08056) under numeri
 The package is maintained by [Poetry](https://python-poetry.org/). To install this package and its dependencies in a dedicated virtual environment, please do the following
 
 ```
-git clone https://github.com/ShantanuKodgirwar/geosss
+git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
 poetry install
 ```
