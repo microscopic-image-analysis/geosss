@@ -9,6 +9,6 @@ from .sphere import (cartesian2polar, cartesian2spherical, distance, givens,
                      orthogonal_projection, polar2cartesian, radial_projection,
                      sample_sphere, sample_subsphere, spherical2cartesian,
                      spherical_projection)
-from .utils import (IAT, SamplerLauncher, acf, acf_fft, counter, n_eff,
+from .utils import (IAT, SamplerLauncher, acf, acf_fft, colors, counter, n_eff,
                     take_time)
 from .visualize import compare_samplers_3d, sphere_pdf
