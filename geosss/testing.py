@@ -1,3 +1,5 @@
+# preliminary implementation for variants of slice samplers
+
 import matplotlib.pyplot as plt
 import numpy as np
 from csb.statistics import autocorrelation
@@ -273,9 +275,3 @@ def spherical_rejection_sampling(pdf, n_samples=1e3):
     print(f'average number of rejections: {np.mean(n_reject)}')
 
     return np.array(samples)
-
-
-
-
-
-
