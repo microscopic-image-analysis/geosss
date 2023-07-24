@@ -54,31 +54,24 @@ seed = 3521                    # sampler seed
 # initial state of the samplers
 init_state = np.array([-0.86333052,  0.18685286, -0.46877117])
 
-# sampling with the four samplers 
+# sampling with the four samplers
+samples = {}
 
 # GeoSSS (reject): ideal geodesic slice sampler
 rsss = gs.RejectionSphericalSliceSampler(pdf, init_state, seed)
-rsss_samples = rsss.sample(n_samples, burnin)
+samples['sss-reject'] = rsss.sample(n_samples, burnin)
 
 # GeoSSS (shrink): shrinkage-based geodesic slice sampler
 ssss = gs.ShrinkageSphericalSliceSampler(pdf, init_state, seed)
-ssss_samples = ssss.sample(n_samples, burnin)
+samples['sss-shrink'] = ssss.sample(n_samples, burnin)
 
 # RWMH: random-walk Metropolis Hastings
 rwmh = gs.MetropolisHastings(pdf, init_state, seed)
-rwmh_samples = rwmh.sample(n_samples, burnin)
+samples['rwmh'] = rwmh.sample(n_samples, burnin)
 
 # HMC: Hamiltonian Monte Carlo
 hmc = gs.SphericalHMC(pdf, init_state, seed)
-hmc_samples = hmc.sample(n_samples, burnin)
-
-# save all the samples in a dictionary
-samples = {
-    'sss-reject': rsss_samples,
-    'sss-shrink': ssss_samples,
-    'rwmh': rwmh_samples,
-    'hmc': hmc_samples
-}
+samples['hmc'] = hmc.sample(n_samples, burnin)
 
 # visualize samples in 3d
 gs.compare_samplers_3d(pdf, samples)
