@@ -1,24 +1,24 @@
-<h1 align="center">
+<p align="center">
 <img src="assets/logo.svg" width="300">
-</h1><br>
+</p>
 
 [![arXiv](https://img.shields.io/badge/DOI-10.1038%2Fs41586--020--2649--2-blue)](
 https://doi.org/10.48550/arXiv.2301.08056)
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
-This Python package implements two new tuning-free MCMC algorithms, an **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice** sampler to sample from spherical distributions on arbitrary dimensions. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automaticall tuned.
+This Python package implements two novel tuning-free MCMC algorithms, an **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** to sample from spherical distributions on arbitrary dimensions. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned.
 As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for spherical distributions. 
 
-This demo quickly illustrates that. By comparing our samplers GeoSSS (reject) and GeoSSS (shrink) (top row) vs RWMH and HMC (bottom row) for a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$ and by using $10^3$ samples. Our samplers explore all modes, while RWMH and HMC gets stuck in a single mode. 
+This demo quickly illustrates that. We consider a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$. By using $10^3$ samples, our samplers GeoSSS (reject) and GeoSSS (shrink) (top row) explore all modes, whereas RWMH and HMC (bottom row) get stuck in a single mode. 
 
 ![animation_vMF](assets/animation_vMF.gif)
 
 ## Installation
 
-GeoSSS is available for installation from PyPI (TODO: Add a link here later). Therefore, simply type:
+GeoSSS is available for installation from PyPI (TODO: Add a link here later, when on PyPI). Therefore, simply type:
+
 ```
-# TODO: not yet on PyPI
 pip install geosss
 ```
 
