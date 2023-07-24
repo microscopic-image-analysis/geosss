@@ -2,6 +2,7 @@
 <img src="https://github.com/microscopic-image-analysis/geosss/blob/927ff8c8187b88a1a72725c4e450ae0f0523431b/assets/logo.svg" width="300">
 </p>
 
+![PyPI](https://img.shields.io/pypi/v/geosss)
 [![arXiv](https://img.shields.io/badge/DOI-10.1038%2Fs41586--020--2649--2-blue)](
 https://doi.org/10.48550/arXiv.2301.08056)
 
@@ -16,7 +17,7 @@ This demo quickly illustrates that. We consider a target that is a mixture of vo
 
 ## Installation
 
-GeoSSS is available for installation from PyPI. Therefore, simply type:
+GeoSSS is available for installation from [PyPI](https://pypi.org/project/geosss/). Therefore, simply type:
 
 ```
 pip install geosss
