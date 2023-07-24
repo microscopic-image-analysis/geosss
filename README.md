@@ -16,7 +16,7 @@ This demo quickly illustrates that. We consider a target that is a mixture of vo
 
 ## Installation
 
-GeoSSS is available for installation from PyPI (TODO: Add a link here later, when on PyPI). Therefore, simply type:
+GeoSSS is available for installation from PyPI. Therefore, simply type:
 
 ```
 pip install geosss
