@@ -11,4 +11,4 @@ from .sphere import (cartesian2polar, cartesian2spherical, distance, givens,
                      spherical_projection)
 from .utils import (IAT, SamplerLauncher, acf, acf_fft, colors, counter, n_eff,
                     take_time)
-from .visualize import compare_samplers_3d, sphere_pdf
+from .demo_vis import compare_samplers_3d, sphere_pdf

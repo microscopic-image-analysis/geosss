@@ -64,3 +64,6 @@ def compare_samplers_3d(
         ax.set_aspect('equal')
         ax.view_init(-140, 150)
         ax.axis('off')
+
+    fig.tight_layout()
+    plt.show()
