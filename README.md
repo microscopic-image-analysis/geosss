@@ -3,8 +3,10 @@
 </p>
 
 ![PyPI](https://img.shields.io/pypi/v/geosss)
+![Python 3.9+](https://img.shields.io/badge/python-3.9+-green.svg)
 [![arXiv](https://img.shields.io/badge/DOI-10.1038%2Fs41586--020--2649--2-blue)](
 https://doi.org/10.48550/arXiv.2301.08056)
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-purple.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
