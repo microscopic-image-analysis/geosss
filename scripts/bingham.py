@@ -8,37 +8,6 @@ from csb.io import dump, load
 import geosss as gs
 
 
-def random_bingham(d=2, vmax=None, vmin=None, eigensystem=False, seed=None):
-    """
-    Create a random Bingham distribution where
-    Parameters
-    ----------
-    d : integer >= 2
-        Dimension of ambient space
-    vmax : float or None
-        Optional maximum eigenvalue of the precision matrix.
-    vmin : float or None
-        Optional minimum eigenvalue of the precision matrix.
-    eigensystem : bool
-        Flag specifying if Bingham distribution has diagonal precision matrix 
-        (i.e. we are working in the eigenvasis of A) or not. (Default value:
-        False)
-    """
-    rng = np.random.default_rng(seed)
-
-    A = rng.standard_normal((d, d))
-    A = A.T @ A
-    v, U = np.linalg.eigh(A)
-    if vmin is not None:
-        v += vmin - v.min()
-    if vmax is not None:
-        v *= vmax / v.max()
-    if eigensystem:
-        U = np.eye(d)
-    A = (U * v) @ U.T
-    return gs.Bingham(A)
-
-
 class SamplerLauncher(gs.SamplerLauncher):
     """ Adding the kent method to the sampler interface to generate 
     ground truth samples
@@ -163,7 +132,7 @@ if __name__ == '__main__':
     os.makedirs(savedir, exist_ok=True)
 
     # bingham distribution as pdf which is fixed
-    pdf = random_bingham(
+    pdf = gs.random_bingham(
         d=d,
         vmax=vmax,
         vmin=0.,

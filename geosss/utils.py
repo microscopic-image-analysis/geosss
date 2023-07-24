@@ -6,7 +6,11 @@ import numpy as np
 from csb.numeric import log
 
 from geosss.mcmc import (MetropolisHastings, RejectionSphericalSliceSampler,
-                   ShrinkageSphericalSliceSampler, SphericalHMC)
+                         ShrinkageSphericalSliceSampler, SphericalHMC)
+
+# some nice colors
+colors = [(.85, .3, .1), (.15, .35, .6),
+          (.95, .7, 0.1), (.0, .0, .0), (.8, .8, .8)]
 
 
 def format_time(t):
