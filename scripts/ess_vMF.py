@@ -6,17 +6,18 @@ import pandas as pd
 import seaborn as sns
 from csb.io import load
 
-METHODS = ['sss-reject', 'sss-shrink', 'rwmh', 'hmc']
-ALGOS = {'sss-reject': 'geoSSS (reject)',
-         'sss-shrink': 'geoSSS (shrink)',
-         'rwmh': 'RWMH',
-         'hmc': 'HMC'}
+METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
+ALGOS = {
+    "sss-reject": "geoSSS (reject)",
+    "sss-shrink": "geoSSS (shrink)",
+    "rwmh": "RWMH",
+    "hmc": "HMC",
+}
 
 plt.rc("font", size=16)
 
 
 def get_dataset(d, K, path, kappas):
-
     # create a list[dict] for values
     datasets = []
     for kappa in kappas:
@@ -25,8 +26,9 @@ def get_dataset(d, K, path, kappas):
         ess = load(ess_file, gzip=True)
         for method in METHODS:
             for ess_val in ess[method]:
-                datasets.append({'Kappa': kappa, 'Method': ALGOS[method],
-                                 'ESS': ess_val})
+                datasets.append(
+                    {"Kappa": kappa, "Method": ALGOS[method], "ESS": ess_val}
+                )
 
     return pd.DataFrame(datasets)
 
@@ -54,35 +56,38 @@ def ess_boxplot(d, K, kappas, path, savefig=True):
     # sns box plot
     sns.boxplot(
         data=ess_df,
-        x='Kappa',
-        y='ESS',
-        hue='Method',
+        x="Kappa",
+        y="ESS",
+        hue="Method",
         hue_order=list(algos.values()),
-        palette='Set2',
-        ax=ax
+        palette="Set2",
+        ax=ax,
     )
 
     # add labels and titles
-    ax.set_yscale('log')
-    ax.set_ylabel('relative ESS (Log scale)')
+    ax.set_yscale("log")
+    ax.set_ylabel("relative ESS (Log scale)")
     ax.legend()
     plt.xticks()
 
     # add vertical lines between the Kappa values
     for i in range(len(kappas)):
         x = 0.5 + i
-        ax.axvline(x=x, linestyle='--', color='gray', alpha=0.8)
+        ax.axvline(x=x, linestyle="--", color="gray", alpha=0.8)
 
     if savefig:
-        savefile = f"{path}/d{d}_K{K}_kappa{kappas.min()}_{kappas.max()}_ess_boxplot.pdf"
+        savefile = (
+            f"{path}/d{d}_K{K}_kappa{kappas.min()}_{kappas.max()}_ess_boxplot.pdf"
+        )
         fig.savefig(savefile, transparent=True)
 
 
-def ess_plot(d: int, K: int, path: str, kappas: np.ndarray,
-             dim: int = 0, savefig: bool = False) -> None:
+def ess_plot(
+    d: int, K: int, path: str, kappas: np.ndarray, dim: int = 0, savefig: bool = False
+) -> None:
     """
-    Plotting ess values for a given dimension `dim` amongst `d` dimensions against kappa 
-    for all the samplers. 
+    Plotting ess values for a given dimension `dim` amongst `d` dimensions against kappa
+    for all the samplers.
 
     Args:
         d (int): dimension of the mixture of vMF
@@ -101,9 +106,9 @@ def ess_plot(d: int, K: int, path: str, kappas: np.ndarray,
     ess_vals = {method: [] for method in METHODS}
     for method in METHODS:
         for kappa in kappas:
-            ess_val = ess_df.loc[(ess_df['Kappa'] == kappa) &
-                                 (ess_df['Method'] == ALGOS[method]),
-                                 'ESS'].iloc[dim]
+            ess_val = ess_df.loc[
+                (ess_df["Kappa"] == kappa) & (ess_df["Method"] == ALGOS[method]), "ESS"
+            ].iloc[dim]
             ess_vals[method].append(ess_val)
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 6))
@@ -111,12 +116,18 @@ def ess_plot(d: int, K: int, path: str, kappas: np.ndarray,
     color_palette = sns.color_palette("deep", n_colors=len(METHODS))
     for i, method in enumerate(METHODS):
         label = ALGOS[method]
-        ax.plot(kappas, ess_vals[method], marker=markers[i], markersize=10,
-                label=label, color=color_palette[i])
-    ax.set_yscale('log')
+        ax.plot(
+            kappas,
+            ess_vals[method],
+            marker=markers[i],
+            markersize=10,
+            label=label,
+            color=color_palette[i],
+        )
+    ax.set_yscale("log")
     ax.legend()
-    ax.set_xlabel(r'concentration parameter $\kappa$')
-    ax.set_ylabel('relative ESS (log)')
+    ax.set_xlabel(r"concentration parameter $\kappa$")
+    ax.set_ylabel("relative ESS (log)")
 
     # Set the x-tick locations and labels
     ax.set_xticks(kappas)
@@ -130,7 +141,7 @@ def ess_plot(d: int, K: int, path: str, kappas: np.ndarray,
 def extract_evals(d, K, kappas, path) -> dict:
     """
     Extracting the evaluations for log_prob, gradient, rejected samples
-    from every log txt file (consisting of 10 runs) that corresponds to a 
+    from every log txt file (consisting of 10 runs) that corresponds to a
     specific kappa.
 
     Ex: For extracting logprob values of sss-reject for a kappa of 100
@@ -148,7 +159,7 @@ def extract_evals(d, K, kappas, path) -> dict:
     if kappas is None:
         kappas = np.arange(50, 550, 50)
 
-    methods = ['sss-reject', 'sss-shrink', 'rwmh', 'hmc']
+    methods = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
 
     evals = {kappa: None for kappa in kappas}
 
@@ -158,35 +169,36 @@ def extract_evals(d, K, kappas, path) -> dict:
         filepath = f"{path}/{subdir}/{subdir}_log.txt"
 
         # read and extract details from the txt file
-        with open(f"{filepath}", 'r') as file:
-
+        with open(f"{filepath}", "r") as file:
             # create an empty dict[dict[list]]
-            evals_kappa = {method: {'logprob': [], 'reject': [], 'grad': []} for
-                           method in methods}
+            evals_kappa = {
+                method: {"logprob": [], "reject": [], "grad": []} for method in methods
+            }
 
             for line in file:
                 # search for logprob through all methods
                 for method in methods:
                     match_logprob = re.search(
-                        rf"logprob calls for {method}: (\d+)", line)
+                        rf"logprob calls for {method}: (\d+)", line
+                    )
                     if match_logprob:
                         logprob_num = int(match_logprob.group(1))
-                        evals_kappa[method]['logprob'].append(logprob_num)
+                        evals_kappa[method]["logprob"].append(logprob_num)
 
                 # search for rejected nums through slice samplers
-                for method in ['sss-reject', 'sss-shrink']:
+                for method in ["sss-reject", "sss-shrink"]:
                     match_reject = re.search(
-                        rf"Rejected samples for {method}: (\d+)", line)
+                        rf"Rejected samples for {method}: (\d+)", line
+                    )
                     if match_reject:
                         reject_num = int(match_reject.group(1))
-                        evals_kappa[method]['reject'].append(reject_num)
+                        evals_kappa[method]["reject"].append(reject_num)
 
                 # gradient evals for hmc
-                match_grad = re.search(
-                    rf"gradient calls for hmc: (\d+)", line)
+                match_grad = re.search(rf"gradient calls for hmc: (\d+)", line)
                 if match_grad:
                     grad_num = int(match_grad.group(1))
-                    evals_kappa['hmc']['grad'].append(grad_num)
+                    evals_kappa["hmc"]["grad"].append(grad_num)
 
         # update dictionary for the file corresponding to `kappa`
         evals[kappa] = evals_kappa
@@ -195,7 +207,6 @@ def extract_evals(d, K, kappas, path) -> dict:
 
 
 def plot_rejected_samples(d, K, kappas, path, savefig=False):
-
     methods = METHODS[:2]
     evals = extract_evals(d, K, kappas, path)
 
@@ -204,8 +215,8 @@ def plot_rejected_samples(d, K, kappas, path, savefig=False):
     vals_reject = []
     for kappa in kappas:
         # normalized over 1e6 samples
-        vals_reject.append(evals[kappa]['sss-reject']['reject'][0] / 1e6)
-        vals_shrink.append(evals[kappa]['sss-shrink']['reject'][0] / 1e6)
+        vals_reject.append(evals[kappa]["sss-reject"]["reject"][0] / 1e6)
+        vals_shrink.append(evals[kappa]["sss-shrink"]["reject"][0] / 1e6)
 
     print(vals_reject)
     print(vals_shrink)
@@ -214,8 +225,14 @@ def plot_rejected_samples(d, K, kappas, path, savefig=False):
     markers = ["8", "s"]
     color_palette = sns.color_palette("deep", 2)
     for i, vals in enumerate([vals_reject, vals_shrink]):
-        ax.plot(kappas, vals, marker=markers[i], markersize=10,
-                label=ALGOS[methods[i]], color=color_palette[i])
+        ax.plot(
+            kappas,
+            vals,
+            marker=markers[i],
+            markersize=10,
+            label=ALGOS[methods[i]],
+            color=color_palette[i],
+        )
     ax.set_xlabel(r"concentration parameter $\kappa$")
     ax.set_ylabel("number of rejections")
     ax.legend()
@@ -225,12 +242,13 @@ def plot_rejected_samples(d, K, kappas, path, savefig=False):
     ax.set_xticklabels(kappas)
 
     if savefig:
-        savefile = f"{path}/d{d}_K{K}_kappa{kappas.min()}_{kappas.max()}_nrejections.pdf"
+        savefile = (
+            f"{path}/d{d}_K{K}_kappa{kappas.min()}_{kappas.max()}_nrejections.pdf"
+        )
         fig.savefig(savefile, transparent=True)
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     # params
     d = 10
     K = 5

@@ -15,7 +15,6 @@ import geosss.vMF_diagnostics as vis
 
 
 class SamplerLauncher(gs.SamplerLauncher):
-
     def run_wood(self):
         N = np.random.multinomial(self.n_samples, self.pdf.weights)
         samples = [gs.sample_vMF(pdf, n) for pdf, n in zip(self.pdf.pdfs, N)]
@@ -23,11 +22,11 @@ class SamplerLauncher(gs.SamplerLauncher):
         return samples[np.random.permutation(self.n_samples)]
 
     def run(self, method):
-        return self.run_wood() if method == 'wood' else super().run(method)
+        return self.run_wood() if method == "wood" else super().run(method)
 
 
 def sampler(method: str, launcher: SamplerLauncher) -> dict[str]:
-    """ calls a sampling method """
+    """calls a sampling method"""
 
     # run sampler for a given method
     samples = {}
@@ -35,7 +34,6 @@ def sampler(method: str, launcher: SamplerLauncher) -> dict[str]:
 
     pdf = launcher.pdf
     with gs.take_time(method):
-
         # sampler for the given method and also save logprob
         samples[method] = launcher.run(method)
         logprob[method] = pdf.log_prob(samples[method])
@@ -45,10 +43,10 @@ def sampler(method: str, launcher: SamplerLauncher) -> dict[str]:
         print(f"logprob calls for {method}:", pdf.log_prob.num_calls)
 
         # counter for rejected samples
-        if method == 'sss-reject':
+        if method == "sss-reject":
             print(f"Rejected samples for {method}: {launcher.rsss.n_reject}")
 
-        if method == 'sss-shrink':
+        if method == "sss-shrink":
             print(f"Rejected samples for {method}: {launcher.ssss.n_reject}")
 
         # reset counters just in case (it doesn't reset if it is not a
@@ -62,12 +60,12 @@ def sampler(method: str, launcher: SamplerLauncher) -> dict[str]:
 
 
 def run_samplers(
-        pdf,
-        methods: list[str],
-        n_samples: int,
-        burnin: int,
-        n_runs: int = 1,
-        reprod_switch: bool = True
+    pdf,
+    methods: list[str],
+    n_samples: int,
+    burnin: int,
+    n_runs: int = 1,
+    reprod_switch: bool = True,
 ):
     """Run all the samplers"""
 
@@ -92,11 +90,11 @@ def run_samplers(
 
         # initialize samples dict and load the wood samples
         samples = {method: None for method in methods}
-        samples['wood'] = tester.run('wood')
+        samples["wood"] = tester.run("wood")
 
         # initialize logprob
         logprob = {method: None for method in methods}
-        logprob['wood'] = tester.pdf.log_prob(samples['wood'])
+        logprob["wood"] = tester.pdf.log_prob(samples["wood"])
 
         # create a partial function
         sampler_partial = partial(sampler, tester=tester)
@@ -122,7 +120,7 @@ def run_samplers(
 
 
 def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch):
-    """ Loads the samples from memory or runs the sampler """
+    """Loads the samples from memory or runs the sampler"""
 
     pklfile_samples = f"{pkl_path}.pkl.gz"
     pklfile_logprob = f"{pkl_path}_logprob.pkl.gz"
@@ -137,7 +135,7 @@ def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch
         print("File not found, starting samplers..")
 
         def start_samplers():
-            """ convenience function """
+            """convenience function"""
 
             # start the samplers parallely
             start = time.perf_counter()
@@ -147,7 +145,7 @@ def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch
                 n_samples,
                 burnin,
                 n_runs=n_runs,
-                reprod_switch=reprod_switch
+                reprod_switch=reprod_switch,
             )
             runs_samples, runs_logprob = runs
             end = time.perf_counter()
@@ -165,7 +163,7 @@ def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch
             return runs_samples
 
         # save the print output to a log file
-        with open(f'{pkl_path}_log.txt', 'w') as f:
+        with open(f"{pkl_path}_log.txt", "w") as f:
             with redirect_stdout(f):
                 runs_samples = start_samplers()
 
@@ -176,27 +174,59 @@ def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch
 
 
 def cli_args(d, K, kappa, n_samples, n_runs):
-    """ 
-    command-line interface for the given arguments 
+    """
+    command-line interface for the given arguments
     """
 
     # parser description
     parser = argparse.ArgumentParser(
-        description='Loading dimension (d), Component (K) and concentration parameter (kappa)')
+        description="Loading dimension (d), Component (K) and concentration parameter (kappa)"
+    )
 
     # parser args
-    parser.add_argument('-d', '--dimension', required=False, default=d,
-                        help='dimension of the vmf mixture', type=int)
-    parser.add_argument('-K', '--component', required=False, default=K,
-                        help='no. of components of the mixture model', type=int)
-    parser.add_argument('-kappa', '--concentration',
-                        required=False, default=kappa, help='concentration parameter of vMF', type=float)
-    parser.add_argument('-n_samples', '--n_samples',
-                        required=False, default=n_samples, help='no. of samples', type=int)
-    parser.add_argument('-n_runs', '--n_runs',
-                        required=False, default=n_runs, help='no. of runs per sampler', type=int)
-    parser.add_argument('-o', '--out_dir', required=False,
-                        help='main output directory', default='./')
+    parser.add_argument(
+        "-d",
+        "--dimension",
+        required=False,
+        default=d,
+        help="dimension of the vmf mixture",
+        type=int,
+    )
+    parser.add_argument(
+        "-K",
+        "--component",
+        required=False,
+        default=K,
+        help="no. of components of the mixture model",
+        type=int,
+    )
+    parser.add_argument(
+        "-kappa",
+        "--concentration",
+        required=False,
+        default=kappa,
+        help="concentration parameter of vMF",
+        type=float,
+    )
+    parser.add_argument(
+        "-n_samples",
+        "--n_samples",
+        required=False,
+        default=n_samples,
+        help="no. of samples",
+        type=int,
+    )
+    parser.add_argument(
+        "-n_runs",
+        "--n_runs",
+        required=False,
+        default=n_runs,
+        help="no. of runs per sampler",
+        type=int,
+    )
+    parser.add_argument(
+        "-o", "--out_dir", required=False, help="main output directory", default="./"
+    )
 
     # load args
     args = vars(parser.parse_args())
@@ -204,15 +234,16 @@ def cli_args(d, K, kappa, n_samples, n_runs):
     return args
 
 
-def visualize_samples(samples, kappa, pdf, path, filename, save_res=True, misc_plots=False, acf_lag=30000):
-    """ Just a util routine that calls all visualizing functions"""
+def visualize_samples(
+    samples, kappa, pdf, path, filename, save_res=True, misc_plots=False, acf_lag=30000
+):
+    """Just a util routine that calls all visualizing functions"""
 
     # modes of a mixture model
     ndim = pdf.pdfs[0].d
 
     # ACF and entropy plots
-    vis.acf_entropy_plot(samples, pdf, path, filename,
-                         lag=acf_lag, save_res=save_res)
+    vis.acf_entropy_plot(samples, pdf, path, filename, lag=acf_lag, save_res=save_res)
 
     # plot histogram
     vis.hist_plot(samples, ndim, path, filename, save_res=save_res)
@@ -222,7 +253,6 @@ def visualize_samples(samples, kappa, pdf, path, filename, save_res=True, misc_p
 
     # additional-plots (not used in paper)
     if misc_plots:
-
         # entropy and kl-divergence plots
         vis.entropy_kld(samples, pdf, path, filename, save_res=save_res)
 
@@ -230,21 +260,19 @@ def visualize_samples(samples, kappa, pdf, path, filename, save_res=True, misc_p
         vis.trace_plots(samples, ndim, path, filename, save_res=save_res)
 
         # ACF plot per dimension
-        vis.acf_plots(samples, ndim, path, filename,
-                      lag=acf_lag, save_res=save_res)
+        vis.acf_plots(samples, ndim, path, filename, lag=acf_lag, save_res=save_res)
 
 
 def main():
-
     # set the parameters
-    d = 10                         # dimension
-    K = 5                          # number of mixture components
-    kappa = 100.0                  # concentration parameter
-    reprod_switch = True           # generates reproducible results
-    plot_results = True            # plotting results
-    save_results = True            # saving results
-    n_samples = int(1e6)           # no. of samples
-    n_runs = 1                     # sampler runs (ess only for `n_runs=10`)
+    d = 10  # dimension
+    K = 5  # number of mixture components
+    kappa = 100.0  # concentration parameter
+    reprod_switch = True  # generates reproducible results
+    plot_results = True  # plotting results
+    save_results = True  # saving results
+    n_samples = int(1e6)  # no. of samples
+    n_runs = 1  # sampler runs (ess only for `n_runs=10`)
     burnin = int(0.1 * n_samples)  # burnin samples
 
     # set filepaths and filenames
@@ -256,44 +284,37 @@ def main():
     args = cli_args(d, K, kappa, n_samples, n_runs)
 
     # modified from console
-    d = args['dimension']
-    K = args['component']
-    kappa = args['concentration']
-    n_samples = args['n_samples']
-    n_runs = args['n_runs']
+    d = args["dimension"]
+    K = args["component"]
+    kappa = args["concentration"]
+    n_samples = args["n_samples"]
+    n_runs = args["n_runs"]
 
     # update the path if arg specified as command line
-    subdir = args['out_dir'] + subdir
+    subdir = args["out_dir"] + subdir
 
     # create the subdir if it doesn't exist
     os.makedirs(subdir, exist_ok=True)
 
     # fixes modes to fix the target
     mode_seed = 1234
-    modes = gs.sphere.sample_sphere(d-1, K, seed=mode_seed)
+    modes = gs.sphere.sample_sphere(d - 1, K, seed=mode_seed)
 
     # pdf as a mixture of von Mises-Fisher distributions
-    vmfs = [gs.VonMisesFisher(kappa*mu) for mu in modes]
+    vmfs = [gs.VonMisesFisher(kappa * mu) for mu in modes]
     pdf = gs.MixtureModel(vmfs)
 
     # sampler methods
-    methods = ('sss-reject', 'sss-shrink', 'rwmh', 'hmc')
+    methods = ("sss-reject", "sss-shrink", "rwmh", "hmc")
 
     # load samples or run sampler
     runs_samples = load_or_run(
-        f"{subdir}/{filename}",
-        pdf,
-        methods,
-        n_samples,
-        burnin,
-        n_runs,
-        reprod_switch
+        f"{subdir}/{filename}", pdf, methods, n_samples, burnin, n_runs, reprod_switch
     )
 
     # Loading the first run `ind=0` to generate plots in paper
     ind = 0
-    samples = runs_samples if isinstance(
-        runs_samples, dict) else runs_samples[ind]
+    samples = runs_samples if isinstance(runs_samples, dict) else runs_samples[ind]
 
     # plotting results
     if plot_results:
@@ -305,11 +326,10 @@ def main():
             subdir,
             filename,
             save_res=save_results,
-            misc_plots=False,       # set `true` for misc plots not in paper
-            acf_lag=int(8e4)        # adjusting `acf_lag` if not sufficient
+            misc_plots=False,  # set `true` for misc plots not in paper
+            acf_lag=int(8e4),  # adjusting `acf_lag` if not sufficient
         )
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     main()

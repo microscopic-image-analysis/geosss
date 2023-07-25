@@ -11,15 +11,13 @@ from geosss.utils import counter
 
 
 class Distribution:
-
     def log_prob(self, x):
         pass
 
 
 class Uniform(Distribution):
-
     def log_prob(self, x):
-        return 0.
+        return 0.0
 
     def gradient(self, x):
         return np.zeros_like(x)
@@ -29,7 +27,7 @@ class Uniform(Distribution):
 class Bingham(Distribution):
     """Bingham distribution
 
-    p(x) \propto \exp(x^T A x) 
+    p(x) \propto \exp(x^T A x)
 
     where A is a symmetric matrix without loss of generality.
 
@@ -38,8 +36,8 @@ class Bingham(Distribution):
     A = U\Lambda U^T
     \]
     where $\Lambda$ is diagonal matrix of eigenvalues, and the columns of $U$
-    are the eigenvectors of $A$. Moreover, $U$ is a column-orthogonal matrix: 
-    $U^T U = I$. 
+    are the eigenvectors of $A$. Moreover, $U$ is a column-orthogonal matrix:
+    $U^T U = I$.
 
     Variable transformation:
 
@@ -47,7 +45,7 @@ class Bingham(Distribution):
 
     The transformed distribution is
 
-    y \sim \exp(\sum_i \lambda_i y_i^2) = \prod_i \exp(\lambda_i y_i^2) 
+    y \sim \exp(\sum_i \lambda_i y_i^2) = \prod_i \exp(\lambda_i y_i^2)
 
     subject to $\|y\| = 1$
 
@@ -57,7 +55,6 @@ class Bingham(Distribution):
     """
 
     def __init__(self, A):
-
         assert np.allclose(A, A.T)
 
         self.A = A
@@ -72,7 +69,7 @@ class Bingham(Distribution):
         """
         Evaluate the log pdf of the Bingham distribution for a single point on
         the sphere (if np.ndim(x) == 1) or multiple points (rows of a rank-2
-        array). 
+        array).
         """
         assert x.ndim in (1, 2) and x.shape[-1] == self.d
 
@@ -83,14 +80,12 @@ class Bingham(Distribution):
 
     @property
     def d(self):
-        """Dimension of ambient space. 
-        """
+        """Dimension of ambient space."""
         return len(self.A)
 
     @property
     def mode(self):
-        """Point with maximum probability. 
-        """
+        """Point with maximum probability."""
         return self.U[:, 0]
 
     @property
@@ -100,9 +95,7 @@ class Bingham(Distribution):
 
 @counter(["log_prob", "gradient"])
 class BinghamFisher(Bingham):
-
     def __init__(self, A, b):
-
         super().__init__(A)
         assert len(A) == len(b)
         self.b = b
@@ -143,13 +136,15 @@ class VonMisesFisher(Distribution):
     def log_Z(self):
         d = self.d
         kappa = np.linalg.norm(self.mu)
-        log_Z = (d/2) * np.log(2 * np.pi) + np.log(ive(d/2 - 1, kappa)) - \
-            (d/2 - 2) * np.log(kappa)
+        log_Z = (
+            (d / 2) * np.log(2 * np.pi)
+            + np.log(ive(d / 2 - 1, kappa))
+            - (d / 2 - 2) * np.log(kappa)
+        )
         return log_Z
 
     def log_prob(self, x):
-        return x @ self.mu - np.log(2 * np.pi) \
-            - np.log(i0(np.linalg.norm(self.mu)))
+        return x @ self.mu - np.log(2 * np.pi) - np.log(i0(np.linalg.norm(self.mu)))
 
     def gradient(self, x):
         return self.mu
@@ -157,30 +152,27 @@ class VonMisesFisher(Distribution):
 
 @counter("log_prob")
 class MultivariateNormal(Distribution):
-
     def __init__(self, mu, C):
         self.mu = mu
         self.C = C
         self.invC = np.linalg.inv(C)
 
     def log_prob(self, x):
-        return -0.5 * np.sum((x-self.mu) * ((x-self.mu) @ self.invC), axis=-1)
+        return -0.5 * np.sum((x - self.mu) * ((x - self.mu) @ self.invC), axis=-1)
 
 
 @counter("log_prob")
 class ACG(MultivariateNormal):
-
     def __init__(self, C):
         super().__init__(np.zeros(len(C)), C)
 
     def log_prob(self, x):
         y = -2 * super().log_prob(x)
-        return - np.log(y) * len(self.C) / 2
+        return -np.log(y) * len(self.C) / 2
 
 
 @counter(["log_prob", "gradient"])
 class MixtureModel(Distribution):
-
     def __init__(self, components, weights=None):
         self.pdfs = components
         if weights is None:
@@ -212,7 +204,7 @@ def random_bingham(d=2, vmax=None, vmin=None, eigensystem=False, seed=None):
     vmin : float or None
         Optional minimum eigenvalue of the precision matrix.
     eigensystem : bool
-        Flag specifying if Bingham distribution has diagonal precision matrix 
+        Flag specifying if Bingham distribution has diagonal precision matrix
         (i.e. we are working in the eigenvasis of A) or not. (Default value:
         False)
     """
