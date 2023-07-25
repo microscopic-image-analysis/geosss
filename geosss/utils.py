@@ -5,22 +5,30 @@ from functools import wraps
 import numpy as np
 from csb.numeric import log
 
-from geosss.mcmc import (MetropolisHastings, RejectionSphericalSliceSampler,
-                         ShrinkageSphericalSliceSampler, SphericalHMC)
+from geosss.mcmc import (
+    MetropolisHastings,
+    RejectionSphericalSliceSampler,
+    ShrinkageSphericalSliceSampler,
+    SphericalHMC,
+)
 
 # some nice colors
-colors = [(.85, .3, .1), (.15, .35, .6),
-          (.95, .7, 0.1), (.0, .0, .0), (.8, .8, .8)]
+colors = [
+    (0.85, 0.3, 0.1),
+    (0.15, 0.35, 0.6),
+    (0.95, 0.7, 0.1),
+    (0.0, 0.0, 0.0),
+    (0.8, 0.8, 0.8),
+]
 
 
 def format_time(t):
-
-    units = [(1., 's'), (1e-3, 'ms'), (1e-6, 'us'), (1e-9, 'ns')]
+    units = [(1.0, "s"), (1e-3, "ms"), (1e-6, "us"), (1e-9, "ns")]
     for scale, unit in units:
         if t > scale or t == 0:
             break
 
-    return '{0:.1f} {1}'.format(t/scale, unit)
+    return "{0:.1f} {1}".format(t / scale, unit)
 
 
 @contextlib.contextmanager
@@ -29,11 +37,11 @@ def take_time(desc, mute=False):
     yield
     dt = time.process_time() - t0
     if not mute:
-        print('{0} took {1}'.format(desc, format_time(dt)))
+        print("{0} took {1}".format(desc, format_time(dt)))
 
 
 def relative_entropy(p, q):
-    """Kullback-Leibler divergence (aka as relative entropy). """
+    """Kullback-Leibler divergence (aka as relative entropy)."""
     return p @ (log(p) - log(q))
 
 
@@ -47,18 +55,18 @@ def acf(x, n_max=None):
 
     Returns
     -------
-    Array storing the estimated autocorrelation. 
+    Array storing the estimated autocorrelation.
     """
     n_max = n_max or len(x) // 2
     x = x - np.mean(x)
-    ac = [np.mean(x[i:] * x[:len(x) - i]) for i in range(n_max)]
+    ac = [np.mean(x[i:] * x[: len(x) - i]) for i in range(n_max)]
     return np.array(ac) / ac[0]
 
 
 def acf_fft(x):
     """Compute autocorrelation function using the convolution theorem."""
     X = np.fft.rfft((x - x.mean()) / x.std())
-    return np.real(np.fft.irfft(X.conj() * X))[:len(x)//2] / len(x)
+    return np.real(np.fft.irfft(X.conj() * X))[: len(x) // 2] / len(x)
 
 
 def IAT(x, n=None):
@@ -68,27 +76,30 @@ def IAT(x, n=None):
     ac = acf_fft(x)
     if n:
         ac = ac[:n]
-    sums = ac[2:-1].reshape(-1, 2).sum(1) if (len(ac) % 2 != 0) \
+    sums = (
+        ac[2:-1].reshape(-1, 2).sum(1)
+        if (len(ac) % 2 != 0)
         else ac[2:].reshape(-1, 2).sum(1)
+    )
     T = np.nonzero(sums < 0)[0][0]
-    L = (1 + 2 * T) if np.sum(sums < 0) else len(ac)-1
-    return 1.0 + np.max([2 * np.sum(ac[1:L+1]), 0.0])
+    L = (1 + 2 * T) if np.sum(sums < 0) else len(ac) - 1
+    return 1.0 + np.max([2 * np.sum(ac[1 : L + 1]), 0.0])
 
 
 def n_eff(x, n=None):
-    """Computes effective sample size n_eff for given values
-    """
+    """Computes effective sample size n_eff for given values"""
     return len(x) / IAT(x, n)
 
 
 def count_calls(func):
     """
-    decorator that counts how many times a method/function was called. If needed 
-    could be called directly only on a function with @count_calls 
+    decorator that counts how many times a method/function was called. If needed
+    could be called directly only on a function with @count_calls
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
-        """ wrapper inside the `count_calls`"""
+        """wrapper inside the `count_calls`"""
         # updates the counter everytime func is called
         wrapper.num_calls += 1
         return func(*args, **kwargs)
@@ -107,8 +118,8 @@ def count_calls(func):
 
 def counter(method_names):
     """
-    A decorator that counts how many times a method was called. It calls the `count_calls` function to 
-    wrap around a class. So it should be used only on a class. Example: @counter("some_method") or 
+    A decorator that counts how many times a method was called. It calls the `count_calls` function to
+    wrap around a class. So it should be used only on a class. Example: @counter("some_method") or
     @counter(["some_method", "another_method"])
 
     Args:
@@ -125,16 +136,14 @@ def counter(method_names):
     def class_decorator(cls):
         for method_name in method_names:
             if hasattr(cls, method_name):
-                setattr(cls, method_name, count_calls(
-                    getattr(cls, method_name)))
+                setattr(cls, method_name, count_calls(getattr(cls, method_name)))
         return cls
 
     return class_decorator
 
 
 class SamplerLauncher:
-    """Just an interface for launching all the samplers
-    """
+    """Just an interface for launching all the samplers"""
 
     def __init__(self, pdf, initial, n_samples, burnin=0.2, seed=None):
         self.pdf = pdf
@@ -144,41 +153,37 @@ class SamplerLauncher:
         self.seed = seed
 
     def run_sss_reject(self):
-        sampler = RejectionSphericalSliceSampler(
-            self.pdf, self.initial, self.seed)
+        sampler = RejectionSphericalSliceSampler(self.pdf, self.initial, self.seed)
         self.rsss = sampler
 
         return sampler.sample(self.n_samples, burnin=self.burnin)
 
     def run_sss_shrink(self):
-        sampler = ShrinkageSphericalSliceSampler(
-            self.pdf, self.initial, self.seed)
+        sampler = ShrinkageSphericalSliceSampler(self.pdf, self.initial, self.seed)
         self.ssss = sampler
 
         return sampler.sample(self.n_samples, burnin=self.burnin)
 
     def run_rwmh(self):
-        sampler = MetropolisHastings(
-            self.pdf, self.initial, self.seed, stepsize=1e-1)
+        sampler = MetropolisHastings(self.pdf, self.initial, self.seed, stepsize=1e-1)
         self.rwmh = sampler
 
         return sampler.sample(self.n_samples, burnin=self.burnin)
 
     def run_hmc(self):
-        sampler = SphericalHMC(self.pdf, self.initial,
-                               self.seed, stepsize=1e-1)
+        sampler = SphericalHMC(self.pdf, self.initial, self.seed, stepsize=1e-1)
         self.hmc = sampler
 
         return sampler.sample(self.n_samples, burnin=self.burnin)
 
     def run(self, method):
-        if method == 'sss-reject':
+        if method == "sss-reject":
             return self.run_sss_reject()
-        elif method == 'sss-shrink':
+        elif method == "sss-shrink":
             return self.run_sss_shrink()
-        elif method == 'rwmh':
+        elif method == "rwmh":
             return self.run_rwmh()
-        elif method == 'hmc':
+        elif method == "hmc":
             return self.run_hmc()
         else:
-            raise ValueError(f'method {method} not known')
+            raise ValueError(f"method {method} not known")

@@ -11,7 +11,7 @@ from geosss import sphere
 
 def determine_burnin(n_samples, burnin):
     if isinstance(burnin, float):
-        assert 0 <= burnin <= 1.
+        assert 0 <= burnin <= 1.0
         return int(burnin * n_samples)
     else:
         assert burnin >= 0
@@ -91,7 +91,7 @@ class AdaptiveStepsize:
     def __init__(self, stepsize=1e-3, **kwargs):
         super().__init__(**kwargs)
         self.stepsize = float(stepsize)
-        assert self.stepsize > 0.
+        assert self.stepsize > 0.0
         self.reset(0)
 
     def reset(self, burnin):
@@ -110,7 +110,6 @@ class AdaptiveStepsize:
 
 
 class MetropolisHastings(Sampler, AdaptiveStepsize):
-
     def __init__(self, distribution, initial_state, seed=None, stepsize=1e-1):
         """
         Parameters
@@ -169,7 +168,6 @@ class MetropolisHastings(Sampler, AdaptiveStepsize):
 
 
 class IndependenceSampler(MetropolisHastings):
-
     def propose(self):
         x = self.rng.standard_normal(len(self.state))
         return sphere.radial_projection(x)
@@ -177,7 +175,7 @@ class IndependenceSampler(MetropolisHastings):
 
 def project(x, v):
     """
-    Project x into complement of v. 
+    Project x into complement of v.
     """
     return x - v * (v @ x)
 
@@ -187,7 +185,9 @@ class SphericalHMC(MetropolisHastings):
     Spherical Hamiltonian Monte Carlo.
     """
 
-    def __init__(self, distribution, initial_state, seed=None, stepsize=1e-3, n_steps=10):
+    def __init__(
+        self, distribution, initial_state, seed=None, stepsize=1e-3, n_steps=10
+    ):
         """
         Parameters
         ----------
@@ -212,7 +212,7 @@ class SphericalHMC(MetropolisHastings):
 
     def sample_momenta(self):
         """
-        Sample momenta in spherical HMC. 
+        Sample momenta in spherical HMC.
         """
         x, v = np.reshape(self.state, (2, -1))
         v = project(self.rng.standard_normal(len(x)), x)
@@ -240,7 +240,6 @@ class SphericalHMC(MetropolisHastings):
         v += 0.5 * eps * project(gradient(x), x)
 
         for t in range(self.n_steps):
-
             norm = np.linalg.norm(v)
 
             y = np.copy(x)
@@ -260,9 +259,7 @@ class SphericalHMC(MetropolisHastings):
 
     def sample(self, n_samples, burnin=0, return_momenta=False):
         samples = super().sample(n_samples, burnin)
-        positions, momenta = np.swapaxes(
-            np.reshape(samples, (n_samples, 2, -1)), 1, 0
-        )
+        positions, momenta = np.swapaxes(np.reshape(samples, (n_samples, 2, -1)), 1, 0)
         return (positions, momenta) if return_momenta else positions
 
 
@@ -289,7 +286,6 @@ class RejectionSphericalSliceSampler(Sampler):
         self.n_reject = 0
 
     def __next__(self):
-
         x = self.state
         p = self.target.log_prob
 
@@ -315,7 +311,6 @@ class ShrinkageSphericalSliceSampler(RejectionSphericalSliceSampler):
     """
 
     def __next__(self):
-
         x = self.state
         p = self.target.log_prob
 
@@ -333,6 +328,5 @@ class ShrinkageSphericalSliceSampler(RejectionSphericalSliceSampler):
             if p(y) > threshold:
                 self.state = y
                 return y
-            interval = (theta, interval[1]) if theta < 0 \
-                else (interval[0], theta)
+            interval = (theta, interval[1]) if theta < 0 else (interval[0], theta)
             self.n_reject += 1
