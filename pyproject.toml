@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "geosss"
-version = "0.1.4"
+version = "0.1.5"
 description = "Python package implementing an ideal and shrinkage-based geodesic slice sampling on the sphere."
 authors = ["Michael Habeck <michael.habeck@uni-jena.de>",
            "Shantanu Kodgirwar <shantanu.kodgirwar@uni-jena.de>", 
@@ -17,11 +17,9 @@ numpy = "^1.25.1"
 matplotlib = "^3.7.2"
 csb = "^1.2.5"
 arviz = "^0.15.1"
-pyqt5 = "^5.15.9"
 
 
 [tool.poetry.group.dev.dependencies]
-ipykernel = "^6.24.0"
 seaborn = "^0.12.2"
 black = "^23.7.0"
 tsp-solver = "^0.1"
