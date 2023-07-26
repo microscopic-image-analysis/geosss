@@ -21,7 +21,7 @@ This demo quickly illustrates that. We consider a target that is a mixture of vo
 
 GeoSSS is available for installation from [PyPI](https://pypi.org/project/geosss/). Therefore, simply type:
 
-```
+```bash
 pip install geosss
 ```
 
@@ -83,18 +83,26 @@ The plots in the [paper](https://doi.org/10.48550/arXiv.2301.08056) under numeri
 
 ## Development
 
-The package is maintained by [Poetry](https://python-poetry.org/). To install this package and its dependencies in a dedicated virtual environment, please do the following
+To install this package and its development dependencies, please do the following
 
-```
+```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
-poetry install
+pip install .[dev]
+```
+
+Alternatively, you can install this package with [poetry](https://github.com/python-poetry/poetry) in a dedicated virtual environment with the following commands:
+
+```bash
+git clone https://github.com/microscopic-image-analysis/geosss.git
+cd geosss
+poetry install --all-extras
 ```
 
 ## Citation
 
 If you use this package, or ideas from the paper, please consider citing us.
-```
+```bash
 @misc{habeck2023,
       title={Geodesic slice sampling on the sphere}, 
       author={Michael Habeck and Mareike Hasenpflug and Shantanu Kodgirwar and Daniel Rudolf},
