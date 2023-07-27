@@ -2,11 +2,15 @@
 <img src="https://raw.githubusercontent.com/microscopic-image-analysis/geosss/927ff8c8187b88a1a72725c4e450ae0f0523431b/assets/logo.svg" width="300">
 </p>
 
-[![PyPI](https://img.shields.io/pypi/v/geosss)](https://pypi.org/project/geosss/)
-![Python 3.9+](https://img.shields.io/badge/python-3.9+-green.svg)
-[![arXiv](https://img.shields.io/badge/DOI-10.1038%2Fs41586--020--2649--2-blue)](
-https://doi.org/10.48550/arXiv.2301.08056)
-[![License](https://img.shields.io/badge/License-BSD_3--Clause-purple.svg)](https://opensource.org/licenses/BSD-3-Clause)
+<div align="center">
+
+  [![PyPI](https://img.shields.io/pypi/v/geosss)](https://pypi.org/project/geosss/)
+  ![Python 3.9+](https://img.shields.io/badge/python-3.9+-green.svg)
+  [![arXiv](https://img.shields.io/badge/DOI-10.1038%2Fs41586--020--2649--2-blue)](
+  https://doi.org/10.48550/arXiv.2301.08056)
+  [![License](https://img.shields.io/badge/License-BSD_3--Clause-purple.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
+</div>
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
