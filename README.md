@@ -33,6 +33,7 @@ pip install geosss
 
 A minimal example to get started as well as reproduce the above demo:
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microscopic-image-analysis/geosss/blob/main/scripts/example.ipynb)
 ```python
 import geosss as gs
 import numpy as np
