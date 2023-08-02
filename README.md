@@ -88,12 +88,12 @@ The plots in the [paper](https://doi.org/10.48550/arXiv.2301.08056) under numeri
 
 ## Development
 
-To install this package and its development dependencies, please do the following
+To install this package and its development dependencies in editable mode, please do the following
 
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
-pip install .[dev]
+pip install -e .[dev]
 ```
 
 Alternatively, you can install this package with [poetry](https://github.com/python-poetry/poetry) in a dedicated virtual environment with the following commands:
@@ -106,7 +106,7 @@ poetry install --all-extras
 
 ## Citation
 
-If you use this package, or ideas from the paper, please consider citing us.
+If you use this package or ideas from the paper, please consider citing us.
 ```bash
 @misc{habeck2023,
       title={Geodesic slice sampling on the sphere}, 
