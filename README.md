@@ -29,11 +29,17 @@ GeoSSS is available for installation from [PyPI](https://pypi.org/project/geosss
 pip install geosss
 ```
 
+To install dependencies required to run scripts under [`scripts/`](scripts/),
+
+```bash
+pip install geosss[extras]
+```
+
 ## Getting Started
 
 A minimal example to get started as well as reproduce the above demo:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microscopic-image-analysis/geosss/blob/main/scripts/example.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microscopic-image-analysis/geosss/blob/main/scripts/demo.ipynb)
 ```python
 import geosss as gs
 import numpy as np
@@ -94,14 +100,6 @@ To install this package and its development dependencies in editable mode, pleas
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
 pip install -e .[dev]
-```
-
-Alternatively, you can install this package with [poetry](https://github.com/python-poetry/poetry) in a dedicated virtual environment with the following commands:
-
-```bash
-git clone https://github.com/microscopic-image-analysis/geosss.git
-cd geosss
-poetry install --all-extras
 ```
 
 ## Citation
