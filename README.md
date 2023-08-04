@@ -29,6 +29,12 @@ GeoSSS is available for installation from [PyPI](https://pypi.org/project/geosss
 pip install geosss
 ```
 
+To install dependencies required to run scripts under [`scripts/`](scripts/),
+
+```bash
+pip install geosss[extras]
+```
+
 ## Getting Started
 
 A minimal example to get started as well as reproduce the above demo:
@@ -94,14 +100,6 @@ To install this package and its development dependencies, please do the followin
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
 pip install .[dev]
-```
-
-Alternatively, you can install this package with [poetry](https://github.com/python-poetry/poetry) in a dedicated virtual environment with the following commands:
-
-```bash
-git clone https://github.com/microscopic-image-analysis/geosss.git
-cd geosss
-poetry install --all-extras
 ```
 
 ## Citation
