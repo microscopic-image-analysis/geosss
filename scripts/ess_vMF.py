@@ -1,6 +1,6 @@
 import re
 
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     d = 10
     K = 5
     kappas = np.arange(50, 550, 50)
-    path = f"results/results_d{d}_K{K}"
+    path = f"results/mix_vMF_d{d}_K{K}"
 
     # assumes precomputed ess for kappa values between 50 and 500
     ess_plot(d, K, path, kappas, savefig=True)
