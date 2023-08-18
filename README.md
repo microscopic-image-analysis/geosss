@@ -35,6 +35,11 @@ To install dependencies required to run scripts under [`scripts/`](scripts/),
 pip install geosss[extras]
 ```
 
+If you want to install with the latest changes including all the dependencies,
+```bash
+pip install geosss[extras]@git+https://github.com/microscopic-image-analysis/geosss.git@main
+```
+
 ## Getting Started
 
 A minimal example to get started as well as reproduce the above demo:
