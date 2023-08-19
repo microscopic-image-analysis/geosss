@@ -17,7 +17,7 @@
 This python package implements two novel tuning-free MCMC algorithms, an **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** to sample from spherical distributions on arbitrary dimensions. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned.
 As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for spherical distributions. 
 
-This demo quickly illustrates that. We consider a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$. By using $10^3$ samples, our samplers GeoSSS (reject) and GeoSSS (shrink) (top row) explore all modes, whereas RWMH and HMC (bottom row) get stuck in a single mode. 
+This demo quickly illustrates that. We consider a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$. By using $10^3$ samples, our samplers geoSSS (reject) and geoSSS (shrink) (top row) explore all modes, whereas RWMH and HMC (bottom row) get stuck in a single mode. 
 
 ![animation_vMF](https://github.com/microscopic-image-analysis/geosss/blob/927ff8c8187b88a1a72725c4e450ae0f0523431b/assets/animation_vMF.gif?raw=true)
 
@@ -75,11 +75,11 @@ init_state = np.array([-0.86333052,  0.18685286, -0.46877117])
 # sampling with the four samplers
 samples = {}
 
-# GeoSSS (reject): ideal geodesic slice sampler
+# geoSSS (reject): ideal geodesic slice sampler
 rsss = gs.RejectionSphericalSliceSampler(pdf, init_state, seed)
 samples['sss-reject'] = rsss.sample(n_samples, burnin)
 
-# GeoSSS (shrink): shrinkage-based geodesic slice sampler
+# geoSSS (shrink): shrinkage-based geodesic slice sampler
 ssss = gs.ShrinkageSphericalSliceSampler(pdf, init_state, seed)
 samples['sss-shrink'] = ssss.sample(n_samples, burnin)
 
