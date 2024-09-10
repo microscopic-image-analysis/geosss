@@ -40,6 +40,17 @@ If you want to install with the latest changes including all the dependencies,
 pip install geosss[extras]@git+https://github.com/microscopic-image-analysis/geosss.git@main
 ```
 
+## Development
+
+As the package is created with the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is preferable to use it for development. After installation of poetry, please run in the repository's root folder:
+
+```
+poetry install --all-extras
+```
+
+This will install the package in a separate virtual environment and create a `poetry.lock` file with all the *pinned* dependencies.
+
+
 ## Getting Started
 
 A minimal example to get started as well as reproduce the above demo:
