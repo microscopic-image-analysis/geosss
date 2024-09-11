@@ -8,6 +8,7 @@ import numpy as np
 from scipy.special import i0, ive, logsumexp
 
 from geosss import sphere
+from geosss.curve import SphericalCurve
 from geosss.utils import counter
 
 
@@ -222,3 +223,18 @@ def random_bingham(d=2, vmax=None, vmin=None, eigensystem=False, seed=None):
         U = np.eye(d)
     A = (U * v) @ U.T
     return Bingham(A)
+
+
+@counter(["log_prob", "gradient"])
+class CurvedVonMisesFisher(Distribution):
+    def __init__(self, curve: SphericalCurve, kappa: float = 100.0):
+        self.curve = curve
+        self.kappa = kappa
+
+    def log_prob(self, x):
+        if x.ndim == 1:
+            return self.kappa * (x @ self.curve.find_nearest(x))
+        return np.array(list(map(self.log_prob, x)))
+
+    def gradient(self, x):
+        return self.kappa * self.curve.find_nearest(x)
