@@ -2,6 +2,7 @@
 Special-purpose random number generators for the von Mises-Fisher and the Bingham
 distribution.
 """
+
 import numpy as np
 from scipy.optimize import brentq
 

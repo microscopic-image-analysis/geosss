@@ -1,6 +1,7 @@
 """
 Some common distributions on the sphere.
 """
+
 import functools
 
 import numpy as np
@@ -27,7 +28,7 @@ class Uniform(Distribution):
 class Bingham(Distribution):
     """Bingham distribution
 
-    p(x) \propto \exp(x^T A x)
+    p(x) propto \exp(x^T A x)
 
     where A is a symmetric matrix without loss of generality.
 
@@ -108,7 +109,7 @@ class BinghamFisher(Bingham):
 class VonMisesFisher(Distribution):
     """Von Mises-Fisher distribution
 
-    vMF(x) \propto etr(mu^T x)
+    vMF(x) propto etr(mu^T x)
 
     where x is restricted to the unit sphere
     """
