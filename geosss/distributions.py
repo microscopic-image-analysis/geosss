@@ -3,6 +3,7 @@ Some common distributions on the sphere.
 """
 
 import functools
+from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.special import i0, ive, logsumexp
@@ -12,8 +13,15 @@ from geosss.curve import SphericalCurve
 from geosss.utils import counter
 
 
-class Distribution:
+class Distribution(ABC):
+    """Distributions abstract class"""
+
+    @abstractmethod
     def log_prob(self, x):
+        pass
+
+    @abstractmethod
+    def gradient(self, x):
         pass
 
 
