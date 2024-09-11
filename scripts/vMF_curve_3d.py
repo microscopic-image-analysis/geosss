@@ -1,3 +1,4 @@
+# samplers compared on the curve on a 2-sphere
 import os
 from contextlib import redirect_stdout
 
@@ -174,7 +175,6 @@ if __name__ == "__main__":
     # parameters
     t = np.linspace(0, 1, 1_000)  # points on curve
     kappa = 300.0  # concentration parameter
-    d = 3  # dimensionality (2-sphere)
     n_samples = int(1e5)  # number of samples per sampler
     burnin = int(0.1 * n_samples)  # burn-in
 
@@ -206,7 +206,7 @@ if __name__ == "__main__":
         )
         curve = SlerpCurve(knots)
     else:
-        curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=d)
+        curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=3)
 
     pdf = CurvedVonMisesFisher(curve, kappa)
 
