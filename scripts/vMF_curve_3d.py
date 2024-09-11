@@ -3,40 +3,14 @@ from contextlib import redirect_stdout
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.interpolate as interpolate
 import scipy.optimize as opt
 from csb.io import dump, load
 from scipy.spatial import cKDTree
-from scipy.spatial.distance import cdist
 from scipy.special import logsumexp
-from tsp_solver.greedy import solve_tsp
 
 import geosss as gs
-
-
-def distance_slerp(x, a, b):
-    """Compute the shortest distance between a point `x` on the sphere and the slerp
-    connecting two points on the sphere `a`, `b`.
-
-    Parameters
-    ----------
-    x : point on sphere
-        Query point whose distance from the slerp will be determined
-    a : point on sphere
-        Start of slerp
-    b : point on sphere
-        End of slerp
-
-    Returns
-    -------
-    * Shorest geodesic distance from point to slerp
-    * Closest point on slerp
-    """
-    theta = gs.sphere.distance(a, b)
-    t = np.arctan2(b @ x - a @ x * np.cos(theta), a @ x * np.sin(theta))
-    t = np.clip(t, 0.0, theta)
-    y = (np.sin(theta - t) * a + np.sin(t) * b) / np.sin(theta)
-    return gs.sphere.distance(x, y), y
+from geosss.curve import SlerpCurve, SphericalCurve
+from geosss.distributions import CurvedVonMisesFisher, Distribution
 
 
 def saff_sphere(N: int = 1000) -> np.ndarray:
@@ -50,86 +24,6 @@ def saff_sphere(N: int = 1000) -> np.ndarray:
     y = np.sin(phi) * np.sin(theta)
     z = np.cos(theta)
     return np.transpose([x, y, z])
-
-
-class SphericalCurve:
-    def __init__(self, knots):
-        self.knots = knots
-
-    @classmethod
-    def random_curve(cls, n_pts=10):
-        """Generate random points on 2-sphere and order them by finding the shortest
-        path that runs through all points. These points will be interpolated by a curve
-        on the sphere.
-        """
-        x = gs.sphere.sample_sphere(2, n_pts)
-        return cls(x[np.array(solve_tsp(cdist(x, x)))])
-
-
-class SphericalSpline(SphericalCurve):
-    def __init__(self, knots):
-        super().__init__(knots)
-        self.spline, _ = interpolate.splprep(knots.T, s=2)
-
-    def __call__(self, t):
-        return gs.sphere.map_to_sphere(np.transpose(interpolate.splev(t, self.spline)))
-
-    def find_nearest(self, x, n_pts=100):
-        def func(t, x=x, curve=self):
-            return np.linalg.norm(curve(t) - x)
-
-        t = np.linspace(0.0, 1.0, n_pts)
-        t0 = t[np.linalg.norm(self(t) - x, axis=1).argmin()]
-        if np.isclose(t0, 0.0) or np.isclose(t0, 1.0):
-            bracket = (0.0, 1.0)
-        else:
-            bracket = (0.0, t0, 1.0)
-        t = opt.minimize_scalar(func, bracket=bracket).x
-        return self(t)
-
-
-class SlerpCurve(SphericalCurve):
-    def __init__(self, knots):
-        super().__init__(knots)
-        self.theta = np.array(
-            [gs.sphere.distance(a, b) for a, b in zip(knots, knots[1:])]
-        )
-        self.theta = np.append(0.0, self.theta)
-        self.bins = np.add.accumulate(self.theta)
-        self.bins /= self.bins[-1]
-        self.widths = np.diff(self.bins)
-
-    def __call__(self, t):
-        s = self.bins
-        i = np.clip(np.digitize(t, s, right=True), 1, len(self.knots) - 1)
-        theta = self.theta[i]
-        a = np.sin(theta * (s[i] - t) / (s[i] - s[i - 1])) / np.sin(theta)
-        b = np.sin(theta * (t - s[i - 1]) / (s[i] - s[i - 1])) / np.sin(theta)
-        return a[:, None] * self.knots[i - 1] + b[:, None] * self.knots[i]
-
-    def find_nearest(self, x):
-        distances = []
-        points = []
-        for a, b in zip(self.knots, self.knots[1:]):
-            d, y = distance_slerp(x, a, b)
-            distances.append(d)
-            points.append(y)
-        return points[np.argmin(distances)]
-
-
-@gs.counter(["log_prob", "gradient"])
-class CurvedVonMisesFisher(gs.Distribution):
-    def __init__(self, curve: SphericalCurve, kappa: float = 100.0):
-        self.curve = curve
-        self.kappa = kappa
-
-    def log_prob(self, x):
-        if x.ndim == 1:
-            return self.kappa * (x @ self.curve.find_nearest(x))
-        return np.array(list(map(self.log_prob, x)))
-
-    def gradient(self, x):
-        return self.kappa * self.curve.find_nearest(x)
 
 
 def test_gradient(pdf):
@@ -146,77 +40,115 @@ def test_gradient(pdf):
     print(f"error to check correctness of gradient:, {err}")
 
 
-def launch_samplers(savedir, kappa, pdf, tester, methods):
+def _start_sampling(
+    methods: str,
+    tester: gs.SamplerLauncher,
+    pdf: Distribution,
+    savepath_samples: str,
+    savepath_logprob: str,
+):
+    """just a util function to pass the output of
+    this in a log file.
+    """
+
+    # run samplers
+    samples = {}
+    for method in methods:
+        with gs.take_time(method):
+            samples[method] = tester.run(method)
+
+            print(
+                "\n---------------------------"
+                f" Starting the sampler {method}"
+                " ---------------------------"
+            )
+
+            # no. of gradient and log_prob calls
+            print(f"gradient calls for {method}:", pdf.gradient.num_calls)
+            print(f"logprob calls for {method}:", pdf.log_prob.num_calls)
+
+            # counter for rejected samples
+            if method == "sss-reject":
+                print(f"Rejected samples for {method}:" f"{tester.rsss.n_reject}")
+
+            if method == "sss-shrink":
+                print(f"Rejected samples for {method}:" f"{tester.ssss.n_reject}")
+    print(
+        "\n-------------------------------------------"
+        "---------------------------------------------\n"
+    )
+
+    logprob = {}
+    for method in methods:
+        logprob[method] = pdf.log_prob(samples[method])
+
+    # save the runs
+    dump(samples, savepath_samples)
+    dump(logprob, savepath_logprob)
+
+    return samples, logprob
+
+
+def launch_samplers(
+    savedir: str,
+    kappa: float,
+    pdf: Distribution,
+    tester: gs.SamplerLauncher,
+    methods: dict,
+    rerun_if_file_exists: bool = False,
+):
     """just an interface to load or run samplers"""
 
     # load saved samples
     savepath_samples = f"{savedir}/curve_samples_kappa{int(kappa)}.pkl"
     savepath_logprob = f"{savedir}/curve_logprob_kappa{int(kappa)}.pkl"
-    try:
+
+    # loads saved samples
+    if (
+        not rerun_if_file_exists
+        and os.path.exists(savepath_samples)
+        and os.path.exists(savepath_logprob)
+    ):
         samples = load(savepath_samples)
         print(f"Loading file {savepath_samples}")
 
         logprob = load(savepath_logprob)
         print(f"Loading file {savepath_logprob}")
 
-    # run samplers
-    except FileNotFoundError:
-        print("File not found, starting samplers..")
-
-        def start_samplers():
-            """just a util function to pass the output of
-            this in log file
-            """
-
-            # run samplers
-            samples = {}
-            for method in methods:
-                with gs.take_time(method):
-                    samples[method] = tester.run(method)
-
-                    print(
-                        "\n---------------------------"
-                        f"Starting the sampler {method}"
-                        "---------------------------"
-                    )
-
-                    # no. of gradient and log_prob calls
-                    print(f"gradient calls for {method}:", pdf.gradient.num_calls)
-                    print(f"logprob calls for {method}:", pdf.log_prob.num_calls)
-
-                    # counter for rejected samples
-                    if method == "sss-reject":
-                        print(
-                            f"Rejected samples for {method}:" f"{tester.rsss.n_reject}"
-                        )
-
-                    if method == "sss-shrink":
-                        print(
-                            f"Rejected samples for {method}:" f"{tester.ssss.n_reject}"
-                        )
-
-            logprob = {}
-            for method in methods:
-                logprob[method] = pdf.log_prob(samples[method])
-
-            # save the runs
-            dump(samples, savepath_samples)
-            dump(logprob, savepath_logprob)
-
-            return samples, logprob
+    # run samplers instead of loading them from file
+    else:
+        samples, logprob = _start_sampling(
+            methods,
+            tester,
+            pdf,
+            savepath_samples,
+            savepath_logprob,
+        )
 
         # save the print output to a log file
         with open(f"{savedir}/curve_kappa{int(kappa)}_log.txt", "w") as f:
             with redirect_stdout(f):
-                samples, logprob = start_samplers()
+                samples, logprob = _start_sampling(
+                    methods,
+                    tester,
+                    pdf,
+                    savepath_samples,
+                    savepath_logprob,
+                )
 
     return samples, logprob
 
 
-def visualize_samples(samples: dict, methods: tuple):
+def visualize_samples(
+    samples: dict,
+    methods: tuple,
+    algos: dict,
+    curve: SphericalCurve,
+):
     """visualize samples on a 3d sphere"""
     phi, theta = np.mgrid[0 : np.pi : 20j, 0 : 2 * np.pi : 30j]
     euler = (np.sin(phi) * np.cos(theta), np.sin(phi) * np.sin(theta), np.cos(phi))
+    t = np.linspace(0, 1, 1_000)  # points on curve
 
     fig, axes = plt.subplots(
         2, 2, figsize=(8, 8), subplot_kw=dict(projection="3d"), sharex=True, sharey=True
@@ -238,13 +170,19 @@ def visualize_samples(samples: dict, methods: tuple):
 
 
 if __name__ == "__main__":
+
+    # parameters
     t = np.linspace(0, 1, 1_000)  # points on curve
     kappa = 300.0  # concentration parameter
-    fix_curve = True  # fix curve (target)
-    reprod_switch = True  # seeds samplers for reproducibility
+    d = 3  # dimensionality (2-sphere)
     n_samples = int(1e5)  # number of samples per sampler
     burnin = int(0.1 * n_samples)  # burn-in
+
+    # optional controls
+    fix_curve = True  # fix curve (target)
+    reprod_switch = True  # seeds samplers for reproducibility
     savefig = True  # save the plots
+    rerun_if_file_exists = True  # rerun even if file exists
 
     # directory to save results
     savedir = f"results/vMF_curve_kappa{int(kappa)}"
@@ -268,7 +206,7 @@ if __name__ == "__main__":
         )
         curve = SlerpCurve(knots)
     else:
-        curve = SlerpCurve.random_curve(10)
+        curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=d)
 
     pdf = CurvedVonMisesFisher(curve, kappa)
 
@@ -283,6 +221,7 @@ if __name__ == "__main__":
     ax.scatter(*x.T, c=p, s=10, alpha=0.15)
     ax.plot(*curve(t).T, color="k", alpha=1.0)
     ax.scatter(*curve(t).T, c=t, s=1)
+    ax.scatter(*curve.knots.T, c="r", s=20)
     fig.tight_layout()
 
     # initial state fixed and samplers seeded for reproducibility
@@ -300,10 +239,17 @@ if __name__ == "__main__":
     }
 
     # load samples by running or loading from memory
-    samples, logprob = launch_samplers(savedir, kappa, pdf, launcher, methods)
+    samples, logprob = launch_samplers(
+        savedir,
+        kappa,
+        pdf,
+        launcher,
+        methods,
+        rerun_if_file_exists,
+    )
 
     # plot samples on a 3d sphere
-    fig = visualize_samples(samples, methods)
+    fig = visualize_samples(samples, methods, algos, curve)
     if savefig:
         fig.savefig(
             f"{savedir}/curve_samples_kappa{int(kappa)}.pdf",
