@@ -1,4 +1,4 @@
-from .demo_vis import compare_samplers_3d, sphere_pdf
+from .demo_utils import compare_samplers_3d, sphere_pdf
 from .distributions import (
     ACG,
     Bingham,
