@@ -27,9 +27,9 @@ class Uniform(Distribution):
 
 @counter(["log_prob", "gradient"])
 class Bingham(Distribution):
-    """Bingham distribution
+    r"""Bingham distribution
 
-    p(x) propto \exp(x^T A x)
+    (x) \propto \exp(x^T A x)
 
     where A is a symmetric matrix without loss of generality.
 
