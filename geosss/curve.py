@@ -37,12 +37,12 @@ class SphericalCurve:
         self.knots = knots
 
     @classmethod
-    def random_curve(cls, n_pts=10, seed=None, dimension=3):
+    def random_curve(cls, n_knots=10, seed=None, dimension=3):
         """Generate random points on an N-sphere and order them by finding the shortest
         path that runs through all points. These points will be interpolated by a curve
         on the sphere.
         """
-        x = sphere.sample_sphere(dimension - 1, n_pts, seed)
+        x = sphere.sample_sphere(dimension - 1, n_knots, seed)
         return cls(x[np.array(solve_tsp(cdist(x, x)))])
 
 
