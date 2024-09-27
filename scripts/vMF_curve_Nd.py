@@ -1,6 +1,6 @@
 # %%
+import logging
 import os
-from contextlib import redirect_stdout
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -35,6 +35,30 @@ def test_gradient(pdf):
     print(f"error to check correctness of gradient:, {err}")
 
 
+def setup_logging(savedir: str, kappa: float):
+    """Setting up logging
+
+    Parameters
+    ----------
+    savedir : str
+        log file directory
+    kappa : float
+        concentration parameter
+    """
+    logpath = f"{savedir}/curve_kappa{int(kappa)}_log.txt"
+    logging.basicConfig(
+        filename=logpath,
+        filemode="w",  # 'w' to overwrite the log file, 'a' to append
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        level=logging.INFO,
+    )
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    console.setFormatter(formatter)
+    logging.getLogger().addHandler(console)
+
+
 def _start_sampling(
     methods: str,
     tester: gs.SamplerLauncher,
@@ -42,42 +66,36 @@ def _start_sampling(
     savepath_samples: str,
     savepath_logprob: str,
 ):
-    """just a util function to pass the output of
-    this in a log file.
-    """
-
-    # run samplers
+    """just a util function to pass the output of this in a log file."""
     samples = {}
     for method in methods:
         with gs.take_time(method):
             samples[method] = tester.run(method)
 
-            print(
-                "\n---------------------------"
-                f" Starting the sampler {method}"
-                " ---------------------------"
+            logging.info(
+                "\n---------------------------------------------------------------------\n"
+                f"Starting the sampler {method}\n"
+                "---------------------------------------------------------------------\n"
             )
 
-            # no. of gradient and log_prob calls
-            print(f"gradient calls for {method}:", pdf.gradient.num_calls)
-            print(f"logprob calls for {method}:", pdf.log_prob.num_calls)
+            logging.info(f"Gradient calls for {method}: {pdf.gradient.num_calls}")
+            logging.info(f"Logprob calls for {method}: {pdf.log_prob.num_calls}")
 
-            # counter for rejected samples
             if method == "sss-reject":
-                print(f"Rejected samples for {method}:" f"{tester.rsss.n_reject}")
+                logging.info(f"Rejected samples for {method}: {tester.rsss.n_reject}")
 
             if method == "sss-shrink":
-                print(f"Rejected samples for {method}:" f"{tester.ssss.n_reject}")
-    print(
-        "\n-------------------------------------------"
-        "---------------------------------------------\n"
+                logging.info(f"Rejected samples for {method}: {tester.ssss.n_reject}")
+
+    logging.info(
+        "\n---------------------------------------------------------------------\n"
+        "---------------------------------------------------------------------\n"
     )
 
     logprob = {}
     for method in methods:
         logprob[method] = pdf.log_prob(samples[method])
 
-    # save the runs
     dump(samples, savepath_samples)
     dump(logprob, savepath_logprob)
 
@@ -94,23 +112,19 @@ def launch_samplers(
 ):
     """just an interface to load or run samplers"""
 
-    # load saved samples
     savepath_samples = f"{savedir}/curve_samples_kappa{int(kappa)}.pkl"
     savepath_logprob = f"{savedir}/curve_logprob_kappa{int(kappa)}.pkl"
 
-    # loads saved samples
     if (
         not rerun_if_file_exists
         and os.path.exists(savepath_samples)
         and os.path.exists(savepath_logprob)
     ):
         samples = load(savepath_samples)
-        print(f"Loading file {savepath_samples}")
+        logging.info(f"Loading file {savepath_samples}")
 
         logprob = load(savepath_logprob)
-        print(f"Loading file {savepath_logprob}")
-
-    # run samplers instead of loading them from file
+        logging.info(f"Loading file {savepath_logprob}")
     else:
         samples, logprob = _start_sampling(
             methods,
@@ -119,17 +133,6 @@ def launch_samplers(
             savepath_samples,
             savepath_logprob,
         )
-
-        # save the print output to a log file
-        with open(f"{savedir}/curve_kappa{int(kappa)}_log.txt", "w") as f:
-            with redirect_stdout(f):
-                samples, logprob = _start_sampling(
-                    methods,
-                    tester,
-                    pdf,
-                    savepath_samples,
-                    savepath_logprob,
-                )
 
     return samples, logprob
 
@@ -184,8 +187,9 @@ if __name__ == "__main__":
     rerun_if_file_exists = False  # rerun even if file exists
 
     # directory to save results
-    savedir = f"results_testing/vMF_curve_{d}d_kappa{int(kappa)}"
+    savedir = f"results_10d/vMF_curve_{d}d_kappa{int(kappa)}"
     os.makedirs(savedir, exist_ok=True)
+    setup_logging(savedir, kappa)
 
     # define curve on the sphere
     if fix_curve:
@@ -286,7 +290,7 @@ if __name__ == "__main__":
         # distance between successive samples
         x = samples[method]
         d = gs.distance(x[:-1], x[1:])
-        print(
+        logging.info(
             "average great circle distance of successive samples: "
             f"{np.mean(d):.2f} ({method})"
         )
