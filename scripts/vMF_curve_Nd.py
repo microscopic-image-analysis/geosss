@@ -1,4 +1,5 @@
 # %%
+import argparse
 import logging
 import os
 
@@ -6,19 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as opt
 from csb.io import dump, load
-from scipy.spatial import cKDTree
-from scipy.special import logsumexp
 
 import geosss as gs
 from geosss.curve import SlerpCurve, SphericalCurve
 from geosss.distributions import CurvedVonMisesFisher, Distribution
-
-# to view interactively
-INTERACTIVE_BACKEND = False
-if INTERACTIVE_BACKEND:
-    import matplotlib as mpl
-
-    mpl.use("macosx")
 
 
 def test_gradient(pdf):
@@ -167,27 +159,52 @@ def visualize_samples(
     return fig
 
 
+def argparser():
+    parser = argparse.ArgumentParser(
+        description="Process parameters for the curve generation."
+    )
+
+    # Add arguments for kappa and n_samples
+    parser.add_argument(
+        "--kappa",
+        type=float,
+        default=300.0,
+        help="Concentration parameter (default: 300.0)",
+    )
+    parser.add_argument(
+        "--n_samples",
+        type=float,
+        default=1e3,
+        help="Number of samples per sampler (default: 1000)",
+    )
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    return args
+
+
 # %%
 if __name__ == "__main__":
     # TODO: Causes error with distance_slerp implementation
 
+    # Parse arguments
+    args = argparser()
+
     # parameters
-    t = np.linspace(0, 1, 1_000)  # points on curve
-    kappa = 300.0  # concentration parameter
-    d = 10  # dimensionality
-    n_samples = int(
-        1e3
-    )  # number of samples per sampler TODO: Eventually use 1e6 for 10d
+    kappa = args.kappa  # concentration parameter (default: 300.0)
+    n_samples = int(args.n_samples)  # number of samples per sampler (default: 1000)
     burnin = int(0.1 * n_samples)  # burn-in
+    d = 10  # dimensionality
 
     # optional controls
     fix_curve = True  # fix curve (target)
     reprod_switch = True  # seeds samplers for reproducibility
-    savefig = True  # save the plots
-    rerun_if_file_exists = False  # rerun even if file exists
+    savefig = False  # save the plots
+    rerun_if_samples_exists = True  # rerun even if samples file exists
 
     # directory to save results
-    savedir = f"results_10d/vMF_curve_{d}d_kappa{int(kappa)}"
+    savedir = f"results_temp/vMF_curve_{d}d_kappa{int(kappa)}"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
@@ -210,12 +227,19 @@ if __name__ == "__main__":
         )
         # padding the original 2-sphere knots to N-sphere
         d_orig = knots.shape[1]
-        if d >= d_orig:
-            delta_d = d - d_orig
-            knots = np.pad(knots, ((0, 0), (7, 0)))
 
+        # initial fixed state
+        initial = np.array([0.65656515, -0.63315859, -0.40991755])
+        if d > d_orig:
+
+            # lifts the sphere to higher dimensions by padding with zeros
+            delta_d = d - d_orig
+            knots = np.pad(knots, ((0, 0), (delta_d, 0)))
+
+            # initial fixed state
+            seed_init_state = 1345
+            initial = gs.sample_sphere(d - 1, seed=seed_init_state)
         curve = SlerpCurve(knots)
-        # TODO: What should be n_pts (knots) for d-dimensional curve? 10 was perhaps okay for d=3
 
     else:
         curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=d)
@@ -223,15 +247,10 @@ if __name__ == "__main__":
     pdf = CurvedVonMisesFisher(curve, kappa)
 
     # initial state fixed and samplers seeded for reproducibility
-    if d == 3:
-        initial = np.array([0.65656515, -0.63315859, -0.40991755])
-    else:
-        seed = 1345
-        initial = gs.sample_sphere(d, seed=seed)
-    seed = 6756 if reprod_switch else None
+    seed_samplers = 6756 if reprod_switch else None
 
     # `tester` instances samplers
-    launcher = gs.SamplerLauncher(pdf, initial, n_samples, burnin, seed)
+    launcher = gs.SamplerLauncher(pdf, initial, n_samples, burnin, seed_samplers)
     methods = ("sss-reject", "sss-shrink", "rwmh", "hmc")
     algos = {
         "sss-reject": "geoSSS (reject)",
@@ -248,17 +267,18 @@ if __name__ == "__main__":
         pdf,
         launcher,
         methods,
-        rerun_if_file_exists,
+        rerun_if_samples_exists,
     )
 
     # plot samples on a 3d sphere
-    fig = visualize_samples(samples, methods, algos, curve)
-    if savefig:
-        fig.savefig(
-            f"{savedir}/curve_samples_kappa{int(kappa)}.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
+    if d == 3:
+        fig = visualize_samples(samples, methods, algos, curve)
+        if savefig:
+            fig.savefig(
+                f"{savedir}/curve_samples_kappa{int(kappa)}.pdf",
+                bbox_inches="tight",
+                transparent=True,
+            )
 
     # generate figures
     fs = 16
@@ -309,6 +329,7 @@ if __name__ == "__main__":
             transparent=True,
         )
 
+    # autocorrelation between samples
     fig, axes = plt.subplots(3, 4, figsize=(12, 9), sharex=True, sharey=True)
     for ax, method in zip(axes[0], methods):
         ax.set_title(algos[method], fontsize=fs)
@@ -322,13 +343,16 @@ if __name__ == "__main__":
     for d, ax in enumerate(axes[:, 0], 1):
         ax.set_ylabel(rf"ACF $x_{d}$", fontsize=fs)
     ax.set_xlim(-5, 250)
+    fig.suptitle("Autocorrelation between samples", fontsize=fs)
     fig.tight_layout()
 
+    # autocorrelation between logprob of the samples
     fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
     for ax, method in zip(axes, methods):
         ac = gs.acf(logprob[method], 1000)
         ax.plot(ac, color="k", alpha=1.0, lw=3)
-    ax.set_xlim(-5, 200)
+        ax.set_xlim(-5, 200)
+    fig.suptitle("Autocorrelation between logprob of the samples", fontsize=fs)
     fig.tight_layout()
 
     bins = 50
@@ -338,8 +362,8 @@ if __name__ == "__main__":
     )
     for i, axes in enumerate(rows):
         vals = x[:, i]
-        ref = list(np.histogram(vals, weights=p, bins=bins, density=True))
-        ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
+        # ref = list(np.histogram(vals, weights=p, bins=bins, density=True))
+        # ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
         for ax, method in zip(axes, methods):
             bins = ax.hist(
                 samples[method][burnin:, i],
@@ -349,7 +373,7 @@ if __name__ == "__main__":
                 color="k",
                 histtype="stepfilled",
             )[1]
-            ax.plot(*ref[::-1], color="r", lw=1, ls="--")
+            # ax.plot(*ref[::-1], color="r", lw=1, ls="--")
             ax.set_xlabel(rf"$e_{i}^Tx_n$", fontsize=fs)
     for ax, method in zip(rows[0], methods):
         ax.set_title(algos[method], fontsize=fs)
