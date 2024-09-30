@@ -186,7 +186,6 @@ def argparser():
 
 # %%
 if __name__ == "__main__":
-    # TODO: Causes error with distance_slerp implementation
 
     # Parse arguments
     args = argparser()

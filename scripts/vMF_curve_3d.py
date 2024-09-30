@@ -192,7 +192,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_samples",
         type=float,
-        default=1e5,
+        default=1e3,
         help="Number of samples per sampler (default: 1000)",
     )
 
@@ -203,7 +203,6 @@ if __name__ == "__main__":
     kappa = args.kappa  # concentration parameter
     n_samples = int(args.n_samples)  # number of samples per sampler
     burnin = int(0.1 * n_samples)  # burn-in
-    t = np.linspace(0, 1, 1_000)  # points on curve
 
     # optional controls
     fix_curve = True  # fix curve (target)
@@ -212,7 +211,7 @@ if __name__ == "__main__":
     rerun_if_file_exists = True  # rerun even if file exists
 
     # directory to save results and log info
-    savedir = f"results_temp/vMF_curve_kappa{int(kappa)}"
+    savedir = f"results_temp/vMF_curve_3d_kappa{int(kappa)}"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
@@ -241,12 +240,13 @@ if __name__ == "__main__":
     # eval density
     x = saff_sphere(5000)
     log_p = pdf.log_prob(x)
-    p = np.exp(log_p - logsumexp(log_p))
+    prob_truth = np.exp(log_p - logsumexp(log_p))
+    t = np.linspace(0, 1, 1_000)  # points on curve
 
     # show curve on the sphere
     fig, ax = plt.subplots(figsize=(7, 7), subplot_kw=dict(projection="3d"))
     ax.set_box_aspect((1, 1, 1))
-    ax.scatter(*x.T, c=p, s=10, alpha=0.15)
+    ax.scatter(*x.T, c=prob_truth, s=10, alpha=0.15)
     ax.plot(*curve(t).T, color="k", alpha=1.0)
     ax.scatter(*curve(t).T, c=t, s=1)
     ax.scatter(*curve.knots.T, c="r", s=20)
@@ -360,24 +360,27 @@ if __name__ == "__main__":
 
     x = saff_sphere(1500)
     log_p = pdf.log_prob(x)
-    p = np.exp(log_p - logsumexp(log_p))
+    prob_truth = np.exp(log_p - logsumexp(log_p))
 
     tree = cKDTree(x)
 
-    kl = []
+    kl_methods = []
     for method in methods:
         d, i = tree.query(samples[method], k=1)
         j, c = np.unique(i, return_counts=True)
-        q = np.zeros_like(p)
+        q = np.zeros_like(prob_truth)
         q[j] = c = c / c.sum()
-        kl.append(np.sum(p * np.log(p) - p * np.log(q + p.min())))
-        logging.info(f"KL divergence between target and {method}: {kl[-1]}")
+        kl = np.sum(
+            prob_truth * np.log(prob_truth) - prob_truth * np.log(q + prob_truth.min())
+        )
+        kl_methods.append(kl)
+        logging.info(f"KL divergence between target and {method}: {kl_methods[-1]}")
 
     fig, axes = plt.subplots(1, 1, figsize=(6, 4))
     ax = axes
     # ax.set_title("KL divergence between target and sampled distribution")
     ax.set_ylabel("KL divergence")
-    ax.bar(list(map(algos.get, methods)), kl, color="k", alpha=0.3)
+    ax.bar(list(map(algos.get, methods)), kl_methods, color="k", alpha=0.3)
     plt.xticks(rotation=30)
     fig.tight_layout()
     if savefig:
@@ -389,7 +392,7 @@ if __name__ == "__main__":
 
     x = saff_sphere(100_000)
     log_p = pdf.log_prob(x)
-    p = np.exp(log_p - logsumexp(log_p))
+    prob_truth = np.exp(log_p - logsumexp(log_p))
 
     bins = 50
     plt.rc("font", size=fs)
@@ -398,7 +401,7 @@ if __name__ == "__main__":
     )
     for i, axes in enumerate(rows):
         vals = x[:, i]
-        ref = list(np.histogram(vals, weights=p, bins=bins, density=True))
+        ref = list(np.histogram(vals, weights=prob_truth, bins=bins, density=True))
         ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
         for ax, method in zip(axes, methods):
             bins = ax.hist(
