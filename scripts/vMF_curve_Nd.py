@@ -3,6 +3,7 @@ import argparse
 import logging
 import os
 
+import corner
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as opt
@@ -27,7 +28,7 @@ def test_gradient(pdf):
     print(f"error to check correctness of gradient:, {err}")
 
 
-def setup_logging(savedir: str, kappa: float):
+def setup_logging(savedir: str, kappa: float, filemode: str = "a"):
     """Setting up logging
 
     Parameters
@@ -36,11 +37,13 @@ def setup_logging(savedir: str, kappa: float):
         log file directory
     kappa : float
         concentration parameter
+    filemode : str
+        'w' to overwrite the log file, 'a' to append
     """
-    logpath = f"{savedir}/curve_kappa{int(kappa)}_log.txt"
+    logpath = f"{savedir}/curve_kappa{int(kappa)}.log"
     logging.basicConfig(
         filename=logpath,
-        filemode="w",  # 'w' to overwrite the log file, 'a' to append
+        filemode=filemode,  # 'w' to overwrite the log file, 'a' to append
         format="%(asctime)s - %(levelname)s - %(message)s",
         level=logging.INFO,
     )
@@ -178,6 +181,13 @@ def argparser():
         help="Number of samples per sampler (default: 1000)",
     )
 
+    parser.add_argument(
+        "--dimension",
+        type=int,
+        default=10,
+        help="Dimension of the curve (default: 10)",
+    )
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -194,16 +204,16 @@ if __name__ == "__main__":
     kappa = args.kappa  # concentration parameter (default: 300.0)
     n_samples = int(args.n_samples)  # number of samples per sampler (default: 1000)
     burnin = int(0.1 * n_samples)  # burn-in
-    d = 10  # dimensionality
+    n_dim = args.dimension  # dimensionality (default: 10)
 
     # optional controls
     fix_curve = True  # fix curve (target)
     reprod_switch = True  # seeds samplers for reproducibility
-    savefig = False  # save the plots
-    rerun_if_samples_exists = True  # rerun even if samples file exists
+    savefig = True  # save the plots
+    rerun_if_samples_exists = False  # rerun even if samples file exists
 
     # directory to save results
-    savedir = f"results_temp/vMF_curve_{d}d_kappa{int(kappa)}"
+    savedir = f"results/vMF_curve_{n_dim}d_kappa{int(kappa)}"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
@@ -225,23 +235,23 @@ if __name__ == "__main__":
             ]
         )
         # padding the original 2-sphere knots to N-sphere
-        d_orig = knots.shape[1]
+        n_dim_orig = knots.shape[1]
 
         # initial fixed state
         initial = np.array([0.65656515, -0.63315859, -0.40991755])
-        if d > d_orig:
+        if n_dim > n_dim_orig:
 
             # lifts the sphere to higher dimensions by padding with zeros
-            delta_d = d - d_orig
+            delta_d = n_dim - n_dim_orig
             knots = np.pad(knots, ((0, 0), (delta_d, 0)))
 
             # initial fixed state
             seed_init_state = 1345
-            initial = gs.sample_sphere(d - 1, seed=seed_init_state)
+            initial = gs.sample_sphere(n_dim - 1, seed=seed_init_state)
         curve = SlerpCurve(knots)
 
     else:
-        curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=d)
+        curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=n_dim)
 
     pdf = CurvedVonMisesFisher(curve, kappa)
 
@@ -270,7 +280,7 @@ if __name__ == "__main__":
     )
 
     # plot samples on a 3d sphere
-    if d == 3:
+    if n_dim == 3:
         fig = visualize_samples(samples, methods, algos, curve)
         if savefig:
             fig.savefig(
@@ -280,12 +290,14 @@ if __name__ == "__main__":
             )
 
     # generate figures
+
+    # autocorrelation between samples for the first three dimensions
     fs = 16
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
-    for d, ax in enumerate(axes):
-        ax.set_title(rf"$x_{d+1}$", fontsize=20)
+    for dim, ax in enumerate(axes):
+        ax.set_title(rf"$x_{dim+1}$", fontsize=20)
         for method in methods:
-            ac = gs.acf(samples[method][:, d], 250)
+            ac = gs.acf(samples[method][:, dim], 250)
             ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
         ax.axhline(0.0, ls="--", color="k", alpha=0.7)
         ax.set_xlabel(r"lag", fontsize=fs)
@@ -299,7 +311,7 @@ if __name__ == "__main__":
             transparent=True,
         )
 
-    # geodesic distance
+    # geodesic distance between successive samples
     fig, axes = plt.subplots(
         1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
     )
@@ -308,13 +320,18 @@ if __name__ == "__main__":
         ax.set_title(algos[method], fontsize=fs)
         # distance between successive samples
         x = samples[method]
-        d = gs.distance(x[:-1], x[1:])
+        geo_dist = gs.distance(x[:-1], x[1:])
         logging.info(
             "average great circle distance of successive samples: "
-            f"{np.mean(d):.2f} ({method})"
+            f"{np.mean(geo_dist):.2f} ({method})"
         )
         bins = ax.hist(
-            d, bins=bins, density=True, alpha=0.3, color="k", histtype="stepfilled"
+            geo_dist,
+            bins=bins,
+            density=True,
+            alpha=0.3,
+            color="k",
+            histtype="stepfilled",
         )[1]
         ax.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=fs)
         ax.set_xticks(np.linspace(0.0, np.pi, 3))
@@ -328,44 +345,60 @@ if __name__ == "__main__":
             transparent=True,
         )
 
-    # autocorrelation between samples
-    fig, axes = plt.subplots(3, 4, figsize=(12, 9), sharex=True, sharey=True)
-    for ax, method in zip(axes[0], methods):
-        ax.set_title(algos[method], fontsize=fs)
-    for d in range(3):
-        for ax, method in zip(axes[d], methods):
-            ac = gs.acf(samples[method][:, d], 1000)
-            ax.plot(ac, alpha=0.7, color="k", lw=3)
-            ax.axhline(0.0, ls="--", color="r", alpha=0.7)
-    for ax in axes[-1]:
-        ax.set_xlabel(r"Lag", fontsize=fs)
-    for d, ax in enumerate(axes[:, 0], 1):
-        ax.set_ylabel(rf"ACF $x_{d}$", fontsize=fs)
-    ax.set_xlim(-5, 250)
-    fig.suptitle("Autocorrelation between samples", fontsize=fs)
-    fig.tight_layout()
+    # corner plot for testing
+    for method in methods:
+        fig = corner.corner(samples[method])
+        if savefig:
+            corner_savedir = f"{savedir}/corner_plots"
+            os.makedirs(corner_savedir, exist_ok=True)
+            fig.savefig(
+                f"{corner_savedir}/curve_corner_kappa{int(kappa)}_{method}.pdf",
+                bbox_inches="tight",
+                transparent=True,
+            )
 
-    # autocorrelation between logprob of the samples
-    fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
-    for ax, method in zip(axes, methods):
-        ac = gs.acf(logprob[method], 1000)
-        ax.plot(ac, color="k", alpha=1.0, lw=3)
-        ax.set_xlim(-5, 200)
-    fig.suptitle("Autocorrelation between logprob of the samples", fontsize=fs)
-    fig.tight_layout()
+    misc_plots = False
+    if misc_plots:
+        # autocorrelation between samples
+        # NOTE: This is repeated from above with just the lag=1000
+        fig, axes = plt.subplots(3, 4, figsize=(12, 9), sharex=True, sharey=True)
+        lag = 1000
+        for ax, method in zip(axes[0], methods):
+            ax.set_title(algos[method], fontsize=fs)
+        for dim in range(3):
+            for ax, method in zip(axes[dim], methods):
+                ac = gs.acf(samples[method][:, dim], lag)
+                ax.plot(ac, alpha=0.7, color="k", lw=3)
+                ax.axhline(0.0, ls="--", color="r", alpha=0.7)
+        for ax in axes[-1]:
+            ax.set_xlabel(r"Lag", fontsize=fs)
+        for dim, ax in enumerate(axes[:, 0], 1):
+            ax.set_ylabel(rf"ACF $x_{dim}$", fontsize=fs)
+        ax.set_xlim(-5, 250)
+        fig.suptitle("Autocorrelation between samples", fontsize=fs)
+        fig.tight_layout()
+
+        # autocorrelation between logprob of the samples
+        fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
+        for ax, method in zip(axes, methods):
+            ac = gs.acf(logprob[method], 1000)
+            ax.plot(ac, color="k", alpha=1.0, lw=3)
+            ax.set_xlim(-5, 200)
+        fig.suptitle("Autocorrelation between logprob of the samples", fontsize=fs)
+        fig.tight_layout()
 
     bins = 50
     plt.rc("font", size=fs)
     fig, rows = plt.subplots(
-        3, len(methods), figsize=(12, 10), sharex=True, sharey=True
+        n_dim, len(methods), figsize=(10, 15), sharex=True, sharey=True
     )
-    for i, axes in enumerate(rows):
-        vals = x[:, i]
+    for dim, axes in enumerate(rows):
+        vals = x[:, dim]
         # ref = list(np.histogram(vals, weights=p, bins=bins, density=True))
         # ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
         for ax, method in zip(axes, methods):
             bins = ax.hist(
-                samples[method][burnin:, i],
+                samples[method][:, dim],
                 bins=bins,
                 density=True,
                 alpha=0.3,
@@ -373,7 +406,7 @@ if __name__ == "__main__":
                 histtype="stepfilled",
             )[1]
             # ax.plot(*ref[::-1], color="r", lw=1, ls="--")
-            ax.set_xlabel(rf"$e_{i}^Tx_n$", fontsize=fs)
+            ax.set_xlabel(rf"$e_{dim}^Tx_n$", fontsize=fs)
     for ax, method in zip(rows[0], methods):
         ax.set_title(algos[method], fontsize=fs)
     fig.tight_layout()
@@ -383,5 +416,3 @@ if __name__ == "__main__":
             bbox_inches="tight",
             transparent=True,
         )
-
-    plt.show()
