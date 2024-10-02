@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import time
 from functools import wraps
 
@@ -37,7 +38,7 @@ def take_time(desc, mute=False):
     yield
     dt = time.process_time() - t0
     if not mute:
-        print("{0} took {1}".format(desc, format_time(dt)))
+        logging.info("{0} took {1}".format(desc, format_time(dt)))
 
 
 def relative_entropy(p, q):
