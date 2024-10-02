@@ -4,6 +4,7 @@ import logging
 import os
 
 import corner
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as opt
@@ -12,6 +13,8 @@ from csb.io import dump, load
 import geosss as gs
 from geosss.curve import SlerpCurve, SphericalCurve
 from geosss.distributions import CurvedVonMisesFisher, Distribution
+
+mpl.rcParams["mathtext.fontset"] = "cm"  # Use Computer Modern font
 
 
 def test_gradient(pdf):
@@ -162,6 +165,87 @@ def visualize_samples(
     return fig
 
 
+def scatter_matrix(n_dim, samples, methods, path, filename, savefig=False):
+    """
+    Plotting scatter matrix with the corner library and adjusted label sizes
+    """
+    # Define font sizes
+    label_size = 18  # Size for axis labels
+    tick_size = 12  # Size for tick labels
+    legend_size = 20  # Size for legend
+
+    # create dir to save scatter matrices
+    labels = [rf"$\mathbb{{S}}_{{{i}}}$" for i in range(n_dim)]
+
+    # Set default font sizes for matplotlib
+    plt.rcParams.update(
+        {
+            "font.size": tick_size,
+            "axes.labelsize": label_size,
+            "axes.titlesize": label_size,
+            "xtick.labelsize": tick_size,
+            "ytick.labelsize": tick_size,
+        }
+    )
+
+    # Create custom labels for each dataset
+    methods = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
+    colors = ["tab:blue", "tab:orange", "tab:green", "indianred"]
+
+    figure = plt.figure(figsize=(15, 15))
+
+    for method, color in zip(methods, colors):
+        # First corner plot for contours
+        figure = corner.corner(
+            samples[method],
+            bins=100,
+            color=color,
+            labels=labels,
+            fig=figure,
+            plot_density=False,
+            plot_contours=True,
+            contour_kwargs={"alpha": 0.8},
+            plot_datapoints=False,
+            levels=[0.68, 0.95],
+            labelsize=label_size,
+            label_kwargs={"fontsize": label_size},
+            tick_labels_size=tick_size,
+        )
+
+        # Second corner plot for scatter points
+        figure = corner.corner(
+            samples[method][::20],
+            bins=50,
+            color=color,
+            plot_density=False,
+            plot_contours=False,
+            fig=figure,
+            plot_datapoints=True,
+            data_kwargs={"alpha": 0.1},
+            labels=labels,
+            labelsize=label_size,
+            label_kwargs={"fontsize": label_size},
+            tick_labels_size=tick_size,
+        )
+
+    # Create custom legend with the figure instance
+    legend_handles = [plt.Line2D([0], [0], color=color, lw=4) for color in colors]
+    figure.legend(legend_handles, methods, loc="upper right", fontsize=legend_size)
+
+    # Adjust tick label sizes for all axes
+    axes = np.array(figure.axes).reshape((n_dim, n_dim))
+    for ax in axes.flat:
+        if ax is not None:
+            ax.tick_params(labelsize=tick_size)
+
+    # save corner plot
+    if savefig:
+        savedir = f"{path}/corner_plots"
+        os.makedirs(savedir, exist_ok=True)
+        logging.info(f"Saving corner plot to {savedir}/{filename}.pdf")
+        figure.savefig(f"{savedir}/{filename}.pdf", bbox_inches="tight", dpi=150)
+
+
 def argparser():
     parser = argparse.ArgumentParser(
         description="Process parameters for the curve generation."
@@ -291,6 +375,17 @@ if __name__ == "__main__":
 
     # generate figures
 
+    # corner plot (scatter matrix)
+    scatter_matrix(
+        n_dim,
+        samples,
+        methods,
+        savedir,
+        f"curve_corner_{n_dim}d_kappa{int(kappa)}",
+        savefig=True,
+    )
+
+    if show_plots:
     # autocorrelation between samples for the first three dimensions
     fs = 16
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
