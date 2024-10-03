@@ -128,3 +128,31 @@ def givens(u, v, x):
         )
 
     return rotate
+
+
+def brownian_motion_on_sphere(n_points=100, dimension=6, step_size=0.05, seed=1234):
+    """
+    Generate smooth points on a unit d-sphere using Brownian motion.
+
+    Parameters:
+    n_points: number of points to generate
+    dimension: dimension of the sphere
+    step_size: step size for the Brownian motion, increasing it will make the points jump more
+    seed: random seed
+    """
+    rng = np.random.default_rng(seed)
+
+    # Initialize the first point on the 9-sphere
+    points = np.zeros((n_points, dimension))
+    points[0] = rng.normal(size=dimension)
+    points[0] /= np.linalg.norm(points[0])  # Normalize to the unit sphere
+
+    # Generate subsequent points via Brownian motion (small random steps)
+    for i in range(1, n_points):
+        step = rng.normal(size=dimension) * step_size
+        new_point = points[i - 1] + step
+
+        # Project back to the unit sphere
+        points[i] = new_point / np.linalg.norm(new_point)
+
+    return points
