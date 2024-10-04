@@ -211,7 +211,7 @@ if __name__ == "__main__":
     rerun_if_file_exists = True  # rerun even if file exists
 
     # directory to save results and log info
-    savedir = f"results_temp/vMF_curve_3d_kappa{int(kappa)}"
+    savedir = f"results/vMF_curve_3d_kappa{int(kappa)}"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
