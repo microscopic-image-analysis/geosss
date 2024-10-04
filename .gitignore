@@ -13,7 +13,7 @@ __pycache__/
 results*
 
 # hpc jobs
-slurm/
+sh/
 job_logs/
 
 # jupyter notebook
