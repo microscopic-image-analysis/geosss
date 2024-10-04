@@ -45,6 +45,9 @@ class SphericalCurve:
         x = sphere.sample_sphere(dimension - 1, n_knots, seed)
         return cls(x[np.array(solve_tsp(cdist(x, x)))])
 
+    def find_nearest(self, point, *args, **kwargs):
+        pass
+
 
 class SphericalSpline(SphericalCurve):
     def __init__(self, knots):
@@ -54,12 +57,12 @@ class SphericalSpline(SphericalCurve):
     def __call__(self, t):
         return sphere.map_to_sphere(np.transpose(interpolate.splev(t, self.spline)))
 
-    def find_nearest(self, x, n_pts=100):
-        def func(t, x=x, curve=self):
+    def find_nearest(self, point, n_pts=100):
+        def func(t, x=point, curve=self):
             return np.linalg.norm(curve(t) - x)
 
         t = np.linspace(0.0, 1.0, n_pts)
-        t0 = t[np.linalg.norm(self(t) - x, axis=1).argmin()]
+        t0 = t[np.linalg.norm(self(t) - point, axis=1).argmin()]
         if np.isclose(t0, 0.0) or np.isclose(t0, 1.0):
             bracket = (0.0, 1.0)
         else:
@@ -89,11 +92,11 @@ class SlerpCurve(SphericalCurve):
         b = np.sin(theta * (t - s[i - 1]) / (s[i] - s[i - 1])) / np.sin(theta)
         return a[:, None] * self.knots[i - 1] + b[:, None] * self.knots[i]
 
-    def find_nearest(self, x):
+    def find_nearest(self, point):
         distances = []
         points = []
         for a, b in zip(self.knots, self.knots[1:]):
-            d, y = distance_slerp(x, a, b)
+            d, y = distance_slerp(point, a, b)
             distances.append(d)
             points.append(y)
         return points[np.argmin(distances)]
