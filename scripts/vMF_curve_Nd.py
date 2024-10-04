@@ -272,6 +272,15 @@ def argparser():
         help="Dimension of the curve (default: 10)",
     )
 
+    parser.add_argument(
+        "-n_runs",
+        "--n_runs",
+        required=False,
+        default=1,
+        help="no. of runs per sampler",
+        type=int,
+    )
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -289,21 +298,22 @@ if __name__ == "__main__":
     n_samples = int(args.n_samples)  # number of samples per sampler (default: 1000)
     burnin = int(0.1 * n_samples)  # burn-in
     n_dim = args.dimension  # dimensionality (default: 10)
+    n_runs = args.n_runs  # sampler runs (default: 1), for ess computations `n_runs=10`
 
     # optional controls
-    fix_curve = True  # fix curve (target)
+    fixed_curve = False  # fix curve (target)
     reprod_switch = True  # seeds samplers for reproducibility
+    show_plots = True  # show the plots
     savefig = True  # save the plots
-    rerun_if_samples_exists = False  # rerun even if samples file exists
+    rerun_if_samples_exists = True  # rerun even if samples file exists
 
     # directory to save results
-    savedir = f"results/vMF_curve_{n_dim}d_kappa{int(kappa)}"
+    savedir = f"results/vMF_curve_{n_dim}d_kappa{int(kappa)}_brownian_curve"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
-    # define curve on the sphere
-    if fix_curve:
-        # NOTE: keeping these knots to match with previous paper version
+    # Define curve on the sphere
+    if fixed_curve:
         knots = np.array(
             [
                 [-0.25882694, 0.95006168, 0.17433133],
@@ -318,24 +328,30 @@ if __name__ == "__main__":
                 [-0.6770828, 0.05213374, -0.73405787],
             ]
         )
-        # padding the original 2-sphere knots to N-sphere
-        n_dim_orig = knots.shape[1]
 
-        # initial fixed state
-        initial = np.array([0.65656515, -0.63315859, -0.40991755])
-        if n_dim > n_dim_orig:
+        # Pad to match dimensionality if needed
+        if n_dim > knots.shape[1]:
+            knots = np.pad(knots, ((0, 0), (n_dim - knots.shape[1], 0)))
 
-            # lifts the sphere to higher dimensions by padding with zeros
-            delta_d = n_dim - n_dim_orig
-            knots = np.pad(knots, ((0, 0), (delta_d, 0)))
-
-            # initial fixed state
-            seed_init_state = 1345
-            initial = gs.sample_sphere(n_dim - 1, seed=seed_init_state)
         curve = SlerpCurve(knots)
 
     else:
-        curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=n_dim)
+        # generates a smooth curve on the sphere with brownian motion
+        knots = gs.sphere.brownian_curve_on_sphere(
+            n_points=10,
+            dimension=n_dim,
+            step_size=0.5,  # larger step size will result in more spread out points
+            seed=4562,
+        )
+        curve = SlerpCurve(knots)
+        # curve = SlerpCurve.random_curve(n_knots=100, seed=4562, dimension=n_dim)
+
+    # Initialize based on dimensionality
+    initial = (
+        np.array([0.65656515, -0.63315859, -0.40991755])
+        if n_dim == 3
+        else gs.sample_sphere(n_dim - 1, seed=1345)
+    )
 
     pdf = CurvedVonMisesFisher(curve, kappa)
 
@@ -386,128 +402,116 @@ if __name__ == "__main__":
     )
 
     if show_plots:
-    # autocorrelation between samples for the first three dimensions
-    fs = 16
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
-    for dim, ax in enumerate(axes):
-        ax.set_title(rf"$x_{dim+1}$", fontsize=20)
-        for method in methods:
-            ac = gs.acf(samples[method][:, dim], 250)
-            ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
-        ax.axhline(0.0, ls="--", color="k", alpha=0.7)
-        ax.set_xlabel(r"lag", fontsize=fs)
-    axes[0].set_ylabel("ACF", fontsize=fs)
-    ax.legend(fontsize=fs)
-    fig.tight_layout()
-    if savefig:
-        fig.savefig(
-            f"{savedir}/curve_acf_kappa{int(kappa)}.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
-
-    # geodesic distance between successive samples
-    fig, axes = plt.subplots(
-        1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
-    )
-    bins = 100
-    for ax, method in zip(axes, methods):
-        ax.set_title(algos[method], fontsize=fs)
-        # distance between successive samples
-        x = samples[method]
-        geo_dist = gs.distance(x[:-1], x[1:])
-        logging.info(
-            "average great circle distance of successive samples: "
-            f"{np.mean(geo_dist):.2f} ({method})"
-        )
-        bins = ax.hist(
-            geo_dist,
-            bins=bins,
-            density=True,
-            alpha=0.3,
-            color="k",
-            histtype="stepfilled",
-        )[1]
-        ax.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=fs)
-        ax.set_xticks(np.linspace(0.0, np.pi, 3))
-        ax.set_xticklabels(["0", r"$\pi/2$", r"$\pi$"])
-        ax.semilogy()
-    fig.tight_layout()
-    if savefig:
-        fig.savefig(
-            f"{savedir}/curve_dist_kappa{int(kappa)}.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
-
-    # corner plot for testing
-    for method in methods:
-        fig = corner.corner(samples[method])
+        # autocorrelation between samples for the first three dimensions
+        fs = 16
+        fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
+        for dim, ax in enumerate(axes):
+            ax.set_title(rf"$x_{dim+1}$", fontsize=20)
+            for method in methods:
+                ac = gs.acf(samples[method][:, dim], 250)
+                ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
+            ax.axhline(0.0, ls="--", color="k", alpha=0.7)
+            ax.set_xlabel(r"lag", fontsize=fs)
+        axes[0].set_ylabel("ACF", fontsize=fs)
+        ax.legend(fontsize=fs)
+        fig.tight_layout()
         if savefig:
-            corner_savedir = f"{savedir}/corner_plots"
-            os.makedirs(corner_savedir, exist_ok=True)
             fig.savefig(
-                f"{corner_savedir}/curve_corner_kappa{int(kappa)}_{method}.pdf",
+                f"{savedir}/curve_acf_kappa{int(kappa)}.pdf",
                 bbox_inches="tight",
                 transparent=True,
             )
 
-    misc_plots = False
-    if misc_plots:
-        # autocorrelation between samples
-        # NOTE: This is repeated from above with just the lag=1000
-        fig, axes = plt.subplots(3, 4, figsize=(12, 9), sharex=True, sharey=True)
-        lag = 1000
-        for ax, method in zip(axes[0], methods):
+        # geodesic distance between successive samples
+        fig, axes = plt.subplots(
+            1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
+        )
+        bins = 100
+        for ax, method in zip(axes, methods):
             ax.set_title(algos[method], fontsize=fs)
-        for dim in range(3):
-            for ax, method in zip(axes[dim], methods):
-                ac = gs.acf(samples[method][:, dim], lag)
-                ax.plot(ac, alpha=0.7, color="k", lw=3)
-                ax.axhline(0.0, ls="--", color="r", alpha=0.7)
-        for ax in axes[-1]:
-            ax.set_xlabel(r"Lag", fontsize=fs)
-        for dim, ax in enumerate(axes[:, 0], 1):
-            ax.set_ylabel(rf"ACF $x_{dim}$", fontsize=fs)
-        ax.set_xlim(-5, 250)
-        fig.suptitle("Autocorrelation between samples", fontsize=fs)
-        fig.tight_layout()
-
-        # autocorrelation between logprob of the samples
-        fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
-        for ax, method in zip(axes, methods):
-            ac = gs.acf(logprob[method], 1000)
-            ax.plot(ac, color="k", alpha=1.0, lw=3)
-            ax.set_xlim(-5, 200)
-        fig.suptitle("Autocorrelation between logprob of the samples", fontsize=fs)
-        fig.tight_layout()
-
-    bins = 50
-    plt.rc("font", size=fs)
-    fig, rows = plt.subplots(
-        n_dim, len(methods), figsize=(10, 15), sharex=True, sharey=True
-    )
-    for dim, axes in enumerate(rows):
-        vals = x[:, dim]
-        # ref = list(np.histogram(vals, weights=p, bins=bins, density=True))
-        # ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
-        for ax, method in zip(axes, methods):
+            # distance between successive samples
+            x = samples[method]
+            geo_dist = gs.distance(x[:-1], x[1:])
+            logging.info(
+                "average great circle distance of successive samples: "
+                f"{np.mean(geo_dist):.2f} ({method})"
+            )
             bins = ax.hist(
-                samples[method][:, dim],
+                geo_dist,
                 bins=bins,
                 density=True,
                 alpha=0.3,
                 color="k",
                 histtype="stepfilled",
             )[1]
-            # ax.plot(*ref[::-1], color="r", lw=1, ls="--")
-            ax.set_xlabel(rf"$e_{dim}^Tx_n$", fontsize=fs)
-    for ax, method in zip(rows[0], methods):
-        ax.set_title(algos[method], fontsize=fs)
-    fig.tight_layout()
-    if savefig:
-        fig.savefig(
-            f"{savedir}/curve_hist_kappa{int(kappa)}.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
+            ax.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=fs)
+            ax.set_xticks(np.linspace(0.0, np.pi, 3))
+            ax.set_xticklabels(["0", r"$\pi/2$", r"$\pi$"])
+            ax.semilogy()
+        fig.tight_layout()
+        if savefig:
+            fig.savefig(
+                f"{savedir}/curve_dist_kappa{int(kappa)}.pdf",
+                bbox_inches="tight",
+                transparent=True,
+            )
+
+        misc_plots = False
+        if misc_plots:
+            # autocorrelation between samples
+            # NOTE: This is repeated from above with just the lag=1000
+            fig, axes = plt.subplots(3, 4, figsize=(12, 9), sharex=True, sharey=True)
+            lag = 1000
+            for ax, method in zip(axes[0], methods):
+                ax.set_title(algos[method], fontsize=fs)
+            for dim in range(3):
+                for ax, method in zip(axes[dim], methods):
+                    ac = gs.acf(samples[method][:, dim], lag)
+                    ax.plot(ac, alpha=0.7, color="k", lw=3)
+                    ax.axhline(0.0, ls="--", color="r", alpha=0.7)
+            for ax in axes[-1]:
+                ax.set_xlabel(r"Lag", fontsize=fs)
+            for dim, ax in enumerate(axes[:, 0], 1):
+                ax.set_ylabel(rf"ACF $x_{dim}$", fontsize=fs)
+            ax.set_xlim(-5, 250)
+            fig.suptitle("Autocorrelation between samples", fontsize=fs)
+            fig.tight_layout()
+
+            # autocorrelation between logprob of the samples
+            fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
+            for ax, method in zip(axes, methods):
+                ac = gs.acf(logprob[method], 1000)
+                ax.plot(ac, color="k", alpha=1.0, lw=3)
+                ax.set_xlim(-5, 200)
+            fig.suptitle("Autocorrelation between logprob of the samples", fontsize=fs)
+            fig.tight_layout()
+
+            bins = 50
+            plt.rc("font", size=fs)
+            fig, rows = plt.subplots(
+                n_dim, len(methods), figsize=(10, 15), sharex=True, sharey=True
+            )
+            for dim, axes in enumerate(rows):
+                vals = x[:, dim]
+                # ref = list(np.histogram(vals, weights=p, bins=bins, density=True))
+                # ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
+                for ax, method in zip(axes, methods):
+                    bins = ax.hist(
+                        samples[method][:, dim],
+                        bins=bins,
+                        density=True,
+                        alpha=0.3,
+                        color="k",
+                        histtype="stepfilled",
+                    )[1]
+                    # ax.plot(*ref[::-1], color="r", lw=1, ls="--")
+                    ax.set_xlabel(rf"$e_{dim}^Tx_n$", fontsize=fs)
+            for ax, method in zip(rows[0], methods):
+                ax.set_title(algos[method], fontsize=fs)
+            fig.tight_layout()
+            if savefig:
+                fig.savefig(
+                    f"{savedir}/curve_hist_kappa{int(kappa)}.pdf",
+                    bbox_inches="tight",
+                    transparent=True,
+                )
