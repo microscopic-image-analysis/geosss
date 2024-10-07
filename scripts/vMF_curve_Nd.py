@@ -172,7 +172,7 @@ def scatter_matrix(n_dim, samples, methods, path, filename, savefig=False):
     # Define font sizes
     label_size = 18  # Size for axis labels
     tick_size = 12  # Size for tick labels
-    legend_size = 20  # Size for legend
+    legend_size = 24  # Size for legend
 
     # create dir to save scatter matrices
     labels = [rf"$\mathbb{{S}}_{{{i}}}$" for i in range(n_dim)]
@@ -189,43 +189,45 @@ def scatter_matrix(n_dim, samples, methods, path, filename, savefig=False):
     )
 
     # Create custom labels for each dataset
-    methods = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
     colors = ["tab:blue", "tab:orange", "tab:green", "indianred"]
-
-    figure = plt.figure(figsize=(15, 15))
+    figure = plt.figure(figsize=(18, 18))
 
     for method, color in zip(methods, colors):
-        # First corner plot for contours
+
+        # First corner plot for contours and 1D histograms using all samples
         figure = corner.corner(
             samples[method],
-            bins=100,
+            bins=150,
             color=color,
             labels=labels,
             fig=figure,
             plot_density=False,
-            plot_contours=True,
+            plot_contours=True,  # shows the 2D histograms with contours
             contour_kwargs={"alpha": 0.8},
             plot_datapoints=False,
             levels=[0.68, 0.95],
             labelsize=label_size,
-            label_kwargs={"fontsize": label_size},
+            label_kwargs={"fontsize": label_size, "labelpad": 10},
             tick_labels_size=tick_size,
+            hist_kwargs={"alpha": 1.0},  # 1D histogram
+            smooth1d=1.0,  # smoothens the 1D histogram
         )
 
-        # Second corner plot for scatter points
+        # Second corner plot for showing fewer scatter points
         figure = corner.corner(
-            samples[method][::20],
+            samples[method][::30],
             bins=50,
             color=color,
             plot_density=False,
             plot_contours=False,
             fig=figure,
-            plot_datapoints=True,
+            plot_datapoints=True,  # only shows the scatter points
             data_kwargs={"alpha": 0.1},
             labels=labels,
             labelsize=label_size,
-            label_kwargs={"fontsize": label_size},
+            label_kwargs={"fontsize": label_size, "labelpad": 10},
             tick_labels_size=tick_size,
+            hist_kwargs={"alpha": 0.0},  # 1D histogram disabled
         )
 
     # Create custom legend with the figure instance
