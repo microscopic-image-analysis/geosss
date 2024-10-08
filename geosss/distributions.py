@@ -6,7 +6,8 @@ import functools
 from abc import ABC, abstractmethod
 
 import numpy as np
-from scipy.special import i0, ive, logsumexp
+from scipy.integrate import quad
+from scipy.special import i0, iv, ive, logsumexp
 
 from geosss import sphere
 from geosss.curve import SphericalCurve
@@ -158,6 +159,31 @@ class VonMisesFisher(Distribution):
 
     def gradient(self, x):
         return self.mu
+
+
+@counter("log_prob")
+class MarginalVonMisesFisher(VonMisesFisher):
+    """Computing marginals of the von Mises-Fisher distribution"""
+
+    def __init__(self, index, mu):
+        super().__init__(mu)
+        self.index = index
+
+    def prob(self, x):
+        d = len(self.mu)
+        kappa = np.linalg.norm(self.mu)
+        mu = self.mu[self.index] / kappa
+        prob = (
+            np.sqrt(kappa / (2 * np.pi))
+            / iv(d / 2 - 1, kappa)
+            * ((1 - x**2) / (1 - mu**2)) ** ((d - 3) / 4)
+            * np.exp(kappa * mu * x)
+            * iv((d - 3) / 2, kappa * np.sqrt((1 - mu**2) * (1 - x**2)))
+        )
+        return prob
+
+    def log_prob(self, x):
+        return np.log(np.clip(self.prob(x), 1e-308, None))
 
 
 @counter("log_prob")
