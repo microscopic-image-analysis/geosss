@@ -144,7 +144,7 @@ def brownian_curve_on_sphere(n_points=100, dimension=6, step_size=0.05, seed=123
 
     # Initialize the first point on the dimension-1 -sphere
     points = np.zeros((n_points, dimension))
-    points[0] = sample_sphere(dimension - 1, seed=seed)
+    points[0] = radial_projection(rng.standard_normal(dimension))
 
     # Generate subsequent points via Brownian motion (small random steps)
     for i in range(1, n_points):
@@ -152,6 +152,6 @@ def brownian_curve_on_sphere(n_points=100, dimension=6, step_size=0.05, seed=123
         new_point = points[i - 1] + step
 
         # Project back to the unit sphere
-        points[i] = new_point / np.linalg.norm(new_point)
+        points[i] = radial_projection(new_point)
 
     return points
