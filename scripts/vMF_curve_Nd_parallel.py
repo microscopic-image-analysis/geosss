@@ -327,8 +327,8 @@ def main():
 
     # directory to save results - varying dimensions and varying kappa
     subdirectory = [
-        f"vMF_curve_vary_dimensions_nruns_{n_runs}",
-        f"curve_{n_dim}d_vary_kappa",
+        f"vMF_curve_kappa{kappa}_vary_ndim_nruns_{n_runs}",
+        f"curve_{n_dim}d_vary_kappa_nruns_{n_runs}",
     ][1]
     savedir = f"results/{subdirectory}/curve_{n_dim}d_kappa_{kappa}"
 

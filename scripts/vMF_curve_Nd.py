@@ -1,4 +1,3 @@
-# %%
 import argparse
 import logging
 import os
@@ -7,7 +6,6 @@ import corner
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.optimize as opt
 from csb.io import dump, load
 
 import geosss as gs
@@ -15,20 +13,6 @@ from geosss.curve import SlerpCurve, SphericalCurve
 from geosss.distributions import CurvedVonMisesFisher, Distribution
 
 mpl.rcParams["mathtext.fontset"] = "cm"  # Use Computer Modern font
-
-
-def test_gradient(pdf):
-    x = gs.sphere.sample_sphere()
-    a = pdf.gradient(x)
-    b = opt.approx_fprime(x, pdf.log_prob, 1e-7)
-    print(a)
-    print(b)
-    assert np.allclose(a, b)
-
-    # optional check (internally compares using `appox_fprime`)
-    # error should be low!
-    err = opt.check_grad(pdf.log_prob, pdf.gradient, x, seed=342)
-    print(f"error to check correctness of gradient:, {err}")
 
 
 def setup_logging(savedir: str, kappa: float, filemode: str = "a"):
@@ -289,7 +273,6 @@ def argparser():
     return args
 
 
-# %%
 if __name__ == "__main__":
 
     # Parse arguments
@@ -370,7 +353,6 @@ if __name__ == "__main__":
         "hmc": "HMC",
     }
 
-    # %%
     # load samples by running or loading from memory
     samples, logprob = launch_samplers(
         savedir,
