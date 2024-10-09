@@ -28,7 +28,7 @@ def distance_slerp(x, a, b):
     theta = sphere.distance(a, b)
     t = np.arctan2(b @ x - a @ x * np.cos(theta), a @ x * np.sin(theta))
     t = np.clip(t, 0.0, theta)
-    y = (np.sin(theta - t) * a + np.sin(t) * b) / np.sin(theta)
+    y = (np.sin(theta - t) * a + np.sin(t) * b) / (np.sin(theta) + 1e-10)
     return sphere.distance(x, y), y
 
 
