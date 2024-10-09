@@ -325,8 +325,13 @@ def main():
     # defining this curve as vMF distribution
     pdf = CurvedVonMisesFisher(curve, kappa)
 
-    # directory to save results
-    savedir = f"results/vMF_curve_Nd_nruns_{n_runs}/curve_{n_dim}d_kappa_{kappa}"
+    # directory to save results - varying dimensions and varying kappa
+    subdirectory = [
+        f"vMF_curve_vary_dimensions_nruns_{n_runs}",
+        f"curve_{n_dim}d_vary_kappa",
+    ][1]
+    savedir = f"results/{subdirectory}/curve_{n_dim}d_kappa_{kappa}"
+
     os.makedirs(savedir, exist_ok=True)
 
     methods = ("sss-reject", "sss-shrink", "rwmh", "hmc")
