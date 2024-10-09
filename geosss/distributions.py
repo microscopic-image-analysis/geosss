@@ -265,6 +265,11 @@ class CurvedVonMisesFisher(Distribution):
         self.curve = curve
         self.kappa = kappa
 
+    @property
+    def d(self):
+        """dimension of the sphere"""
+        return self.curve.knots.shape[-1]
+
     def log_prob(self, x):
         if x.ndim == 1:
             return self.kappa * (x @ self.curve.find_nearest(x))
