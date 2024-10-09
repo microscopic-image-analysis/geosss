@@ -29,7 +29,7 @@ GeoSSS is available for installation from [PyPI](https://pypi.org/project/geosss
 pip install geosss
 ```
 
-To install dependencies required to run scripts under [`scripts/`](scripts/),
+To install dependencies required to run files from [scripts/](scripts/) to reproduce results from the [paper](https://doi.org/10.48550/arXiv.2301.08056),
 
 ```bash
 pip install geosss[extras]
