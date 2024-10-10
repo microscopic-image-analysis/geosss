@@ -223,7 +223,7 @@ def load_or_launch_samplers(
         return all_samples, all_logprob
 
 
-def argparser(kappa, n_samples, dimension, n_runs):
+def argparser():
     parser = argparse.ArgumentParser(
         description="Process parameters for the curve generation."
     )
@@ -232,29 +232,39 @@ def argparser(kappa, n_samples, dimension, n_runs):
     parser.add_argument(
         "--kappa",
         type=float,
-        default=kappa,
-        help="Concentration parameter (default: 300.0)",
+        default=500.0,
+        help="Concentration parameter (default: 500.0)",
     )
+
     parser.add_argument(
         "--n_samples",
-        type=float,
-        default=n_samples,
+        type=int,
+        default=int(1e3),
         help="Number of samples per sampler (default: 1000)",
     )
 
     parser.add_argument(
         "--dimension",
         type=int,
-        default=dimension,
+        default=10,
         help="Dimension of the curve (default: 10)",
     )
 
     parser.add_argument(
         "--n_runs",
         required=False,
-        default=n_runs,
-        help="no. of runs per sampler",
+        default=10,
+        help="Number of runs per sampler",
         type=int,
+    )
+
+    # Add argument for output directory
+    parser.add_argument(
+        "--out_dir",
+        required=False,
+        help="Main output directory",
+        default=None,
+        type=str,
     )
 
     # Parse arguments
@@ -265,21 +275,24 @@ def argparser(kappa, n_samples, dimension, n_runs):
 
 def main():
 
-    # default parameters
-    n_samples = int(1e3)  # number of samples per sampler
-    burnin = 0.2  # burn-in
-    kappa = 500.0  # concentration parameter
-    n_dim = 10  # dimensionality
-    n_runs = 10  # no. of runs
-
     # Parse arguments
-    args = argparser(kappa, n_samples, n_dim, n_runs)
+    args = argparser()
 
-    # modified from console
-    n_dim = args["dimension"]
-    kappa = args["kappa"]
-    n_samples = args["n_samples"]
-    n_runs = args["n_runs"]
+    # Ensure correct data types
+    n_dim = int(args["dimension"])  # default: 10
+    kappa = float(args["kappa"])  # default: 500
+    n_samples = int(args["n_samples"])  # default: 1000
+    n_runs = int(args["n_runs"])  # default: 10
+    burnin = 0.2  # burn-in
+
+    # directory to save results
+    if args["out_dir"] is not None:
+        savedir = args["out_dir"]
+    else:
+        savedir = f"results/curve_{n_dim}d_kappa_{kappa}"
+
+    # Create the directory if it doesn't exist
+    os.makedirs(savedir, exist_ok=True)
 
     msg = "Computations only for 2-sphere and above"
     assert n_dim >= 3, msg
@@ -324,15 +337,6 @@ def main():
 
     # defining this curve as vMF distribution
     pdf = CurvedVonMisesFisher(curve, kappa)
-
-    # directory to save results - varying dimensions and varying kappa
-    subdirectory = [
-        f"vMF_curve_kappa{kappa}_vary_ndim_nruns_{n_runs}",
-        f"curve_{n_dim}d_vary_kappa_nruns_{n_runs}",
-    ][1]
-    savedir = f"results/{subdirectory}/curve_{n_dim}d_kappa_{kappa}"
-
-    os.makedirs(savedir, exist_ok=True)
 
     methods = ("sss-reject", "sss-shrink", "rwmh", "hmc")
     algos = {
