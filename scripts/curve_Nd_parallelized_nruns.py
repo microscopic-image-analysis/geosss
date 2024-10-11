@@ -7,8 +7,8 @@ from csb.io import dump, load
 from joblib import Parallel, delayed
 
 import geosss as gs
-from geosss.curve import SlerpCurve
 from geosss.distributions import CurvedVonMisesFisher, Distribution
+from geosss.spherical_curve import SlerpCurve
 
 
 def setup_logging(
@@ -298,7 +298,7 @@ def main():
     assert n_dim >= 3, msg
 
     # optional controls
-    brownian_curve = True  # Fixed curve or a smooth brownian curve
+    brownian_curve = True  # brownian curve or curve with fixed knots
     reprod_switch = True  # seeds samplers for reproducibility
     rerun_if_samples_exists = True  # rerun even if samples file exists
 

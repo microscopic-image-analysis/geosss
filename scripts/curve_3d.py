@@ -12,7 +12,7 @@ from scipy.spatial import cKDTree
 from scipy.special import logsumexp
 
 import geosss as gs
-from geosss.curve import SlerpCurve, SphericalCurve
+from geosss.spherical_curve import SlerpCurve, SphericalCurve
 from geosss.distributions import CurvedVonMisesFisher, Distribution
 
 

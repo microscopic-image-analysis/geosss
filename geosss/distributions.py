@@ -10,7 +10,7 @@ from scipy.integrate import quad
 from scipy.special import i0, iv, ive, logsumexp
 
 from geosss import sphere
-from geosss.curve import SphericalCurve
+from geosss.spherical_curve import SphericalCurve
 from geosss.utils import counter
 
 

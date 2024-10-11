@@ -9,8 +9,8 @@ import numpy as np
 from csb.io import dump, load
 
 import geosss as gs
-from geosss.curve import SlerpCurve, SphericalCurve
 from geosss.distributions import CurvedVonMisesFisher, Distribution
+from geosss.spherical_curve import SlerpCurve, SphericalCurve
 
 mpl.rcParams["mathtext.fontset"] = "cm"  # Use Computer Modern font
 
@@ -286,7 +286,7 @@ if __name__ == "__main__":
     n_runs = args.n_runs  # sampler runs (default: 1), for ess computations `n_runs=10`
 
     # optional controls
-    fixed_curve = False  # fix curve (target)
+    brownian_curve = True  # brownian curve or curve with fixed knots
     reprod_switch = True  # seeds samplers for reproducibility
     show_plots = True  # show the plots
     savefig = True  # save the plots
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     setup_logging(savedir, kappa)
 
     # Define curve on the sphere
-    if fixed_curve:
+    if not brownian_curve:
         knots = np.array(
             [
                 [-0.25882694, 0.95006168, 0.17433133],
