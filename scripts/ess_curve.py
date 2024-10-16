@@ -195,17 +195,21 @@ def calc_ess_varying_kappa(
         if subdir is None
         else subdir
     )
-    datasets_varying_kappa = load_samples_varying_kappa(
-        subdir,
-        kappas,
-        n_dim=n_dim,
-        n_runs=n_runs,
-    )
 
     ess_filepath = os.path.join(subdir, ess_filename)
     if recompute_ess or not os.path.exists(ess_filepath):
+
+        # load sampling for varying kappa
+        datasets_varying_kappa = load_samples_varying_kappa(
+            subdir,
+            kappas,
+            n_dim=n_dim,
+            n_runs=n_runs,
+        )
+
         ess_kappas = {kappa: {} for kappa in kappas}
         for kappa in kappas:
+            print(f"Calculating ESS for ndim={n_dim}, kappa={kappa}..")
             ess_kappas[kappa] = calc_ess(
                 datasets_varying_kappa[kappa],
                 verbose=verbose,
@@ -215,6 +219,52 @@ def calc_ess_varying_kappa(
         ess_kappas = load(ess_filepath)
 
     return ess_kappas if return_ess else None
+
+
+def ess_plot_varying_kappa(
+    ess_kappas,
+    kappas: np.ndarray,
+    select_ndim: int = 0,
+) -> None:
+    """
+    Plotting relative ESS values in logscale for a given dimension `dim` amongst `d` dimensions against kappa
+    for all the samplers.
+    """
+
+    # extract ESS for only the given dimension `select_ndim` corresponding to every
+    # kappa and method
+    ess_single_ndim = {method: [] for method in METHODS}
+    for method in METHODS:
+        for kappa in kappas:
+            ess_vals = ess_kappas[kappa][method][select_ndim].values
+            ess_single_ndim[method].append(float(ess_vals))
+
+    # plot relative ESS vs kappa
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    markers = ["8", "s", "^", "P"]
+    color_palette = sns.color_palette("deep", n_colors=len(METHODS))
+    for i, method in enumerate(METHODS):
+        label = ALGOS[method]
+        ax.plot(
+            kappas,
+            ess_single_ndim[method],
+            marker=markers[i],
+            markersize=10,
+            label=label,
+            color=color_palette[i],
+        )
+    ax.set_yscale("log")
+    ax.legend()
+    ax.set_xlabel(r"concentration parameter $\kappa$")
+    ax.set_ylabel("relative ESS (log)")
+
+    # Set the x-tick locations and labels
+    ax.set_xticks(kappas)
+    ax.set_xticklabels(kappas)
+
+    fig.tight_layout()
+
+    return fig
 
 
 if __name__ == "__main__":
@@ -231,3 +281,6 @@ if __name__ == "__main__":
         return_ess=True,
         recompute_ess=False,
     )
+
+    fig = ess_plot_varying_kappa(ess_kappas, kappas=kappas, select_ndim=0)
+    fig.savefig(f"{subdir}/ess_curve_10d_varying_kappa.pdf", transparent=True, dpi=150)
