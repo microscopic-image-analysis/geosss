@@ -1,7 +1,9 @@
 import os
 
 import arviz as az
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 from csb.io import dump, load
 
 METHODS = ("sss-reject", "sss-shrink", "rwmh", "hmc")
@@ -11,243 +13,197 @@ ALGOS = {
     "rwmh": "RWMH",
     "hmc": "HMC",
 }
+plt.rc("font", size=16)
 
 
-def load_samples_varying_kappa(path_varying_kappa, kappas, n_dim=10, n_runs=10):
-    """Load chains of samples for varying kappas. The shape is (n_runs, n_samples, n_dim).
+def load_samples(
+    base_path,
+    varying_param_values,
+    varying_param_name,
+    fixed_params,
+    n_runs=10,
+    verbose=False,
+):
+    """
+    Load chains of samples for varying a parameter.
 
     Parameters
     ----------
-    path_varying_kappa : str
-        subdirectory for each kappa consisting of samples per run
-    kappas : list[float]
-        concentration parameters
-    n_dim : int
-        dimensions of the samples, by default 10
+    base_path : str
+        Base directory where the samples are stored.
+    varying_param_values : list
+        List of values for the varying parameter (kappas or dimensions).
+    varying_param_name : str
+        Name of the varying parameter ('kappa' or 'n_dim').
+    fixed_params : dict
+        Dictionary of fixed parameters (e.g., {'n_dim': 10} or {'kappa': 500}).
     n_runs : int, optional
-        no. of chains, by default 10
+        Number of runs (chains), by default 10.
+    verbose : bool, optional
+        Whether to print loading progress, by default False.
 
     Returns
     -------
     dict
-        loads a dictionary that can be read as dict[kappa][method]
+        Dictionary that can be read as data_dict[param_value][method]
     """
-    # Initialize a dictionary to hold data for each kappa and method
-    data_dict = {kappa: {method: [] for method in METHODS} for kappa in kappas}
+    # Initialize a dictionary to hold data for each varying parameter value and method
+    data_dict = {
+        param_value: {method: [] for method in METHODS}
+        for param_value in varying_param_values
+    }
 
-    for kappa in kappas:
-        subdir = f"curve_{n_dim}d_kappa_{int(kappa)}"
-        for chain in range(n_runs):
-            samples_file = f"{path_varying_kappa}/{subdir}/curve_samples_{n_dim}d_kappa_{float(kappa)}_run{chain}.pkl"
-            if os.path.exists(samples_file):
-                samples_all = load(samples_file)
-                # Add to the main dictionary
-                for method in METHODS:
-                    if method in samples_all:
-                        data_dict[kappa][method].append(samples_all[method])
-            else:
-                error_msg = (
-                    f"Make sure samples are precomputed and stored for {samples_file}"
-                )
-                raise FileNotFoundError(error_msg)
+    for param_value in varying_param_values:
+        # Update the parameters with the varying parameter
+        params = fixed_params.copy()
+        params[varying_param_name] = param_value
 
-    # Optionally convert lists to arrays if needed
-    for kappa in kappas:
-        for method in data_dict[kappa].keys():
-            data_dict[kappa][method] = np.stack(data_dict[kappa][method], axis=0)
-
-    # samples stored as (chains, draws, dimensions) and accessed with data_dict[kappa][method]
-    return data_dict
-
-
-def load_samples_varying_ndim(path_varying_ndim, n_dims, kappa=500, n_runs=10):
-    """Load chains of samples for varying kappas. The shape is (n_runs, n_samples, n_dim).
-
-    Parameters
-    ----------
-    path_varying_ndim : str
-        subdirectory for each kappa consisting of samples per run
-    n_dims : list[int]
-        list consisting of dimensions
-    kappa : float, optional
-        fixed concentration parameter, by default 500
-    n_runs : int, optional
-        no. of chains, by default 10
-
-    Returns
-    -------
-    dict
-        loads a dictionary that can be read as dict[n_dim][method]
-    """
-    # Initialize a dictionary to hold data for each kappa and method
-    data_dict = {n_dim: {method: [] for method in METHODS} for n_dim in n_dims}
-
-    for n_dim in n_dims:
+        # Build subdir name based on parameters
+        n_dim = params.get("n_dim")
+        kappa = params.get("kappa")
         subdir = f"curve_{n_dim}d_kappa_{float(kappa)}"
+
         for chain in range(n_runs):
-            samples_file = f"{path_varying_ndim}/{subdir}/curve_samples_{n_dim}d_kappa_{float(kappa)}_run{chain}.pkl"
+            # Build samples filename
+            filename = f"curve_samples_{n_dim}d_kappa_{float(kappa)}_run{chain}.pkl"
+            samples_file = os.path.join(base_path, subdir, filename)
             if os.path.exists(samples_file):
                 samples_all = load(samples_file)
+                print(f"Loading file {samples_file}") if verbose else None
+
                 # Add to the main dictionary
                 for method in METHODS:
                     if method in samples_all:
-                        data_dict[n_dim][method].append(samples_all[method])
+                        data_dict[param_value][method].append(samples_all[method])
             else:
                 error_msg = (
                     f"Make sure samples are precomputed and stored for {samples_file}"
                 )
                 raise FileNotFoundError(error_msg)
 
-    # Optionally convert lists to arrays if needed
-    for n_dim in n_dims:
-        for method in data_dict[n_dim].keys():
-            data_dict[n_dim][method] = np.stack(data_dict[n_dim][method], axis=0)
+    # Stack the lists into arrays
+    for param_value in data_dict:
+        for method in data_dict[param_value]:
+            data_dict[param_value][method] = np.stack(
+                data_dict[param_value][method], axis=0
+            )
 
-    # samples stored as (chains, draws, dimensions) and accessed with data_dict[n_dim][method]
     return data_dict
 
 
 def calc_ess(samples_dict, verbose=False):
     """
-    ESS is calculated for every method with the default 'bulk' method from arviz.
-    This implementation estimates ess values per dimension using N chains.
+    Calculate the Effective Sample Size (ESS) for every dimension and for each method
+    using the "bulk" method from the arviz package.
 
     Parameters
     ----------
     samples_dict : dict
-        samples_dict[method] corresponds to samples for every method with shape (chains, draws, dimensions)
+        Dictionary containing samples for each method with shape (chains, draws, dimensions).
     verbose : bool
 
     Returns
     -------
-    Xarray.Dataset
-        Returns values as an Xarray datatset with ess values per dimension per method and can be
-        access with `ess_vals[method].values`
+    dict
+        ESS values per dimension per method.
     """
-
-    # Converts the dict for a specific config (fixed kappa) to an arviz dataset
+    # Convert the dict to an ArviZ dataset
     samples_az = az.dict_to_dataset(samples_dict)
 
-    # ensure chains are greater than or equal to 10
+    # Ensure there are enough chains
     for method in METHODS:
         chains = samples_az[method].values.shape[0]
+        assert chains >= 10, "ESS calculation requires at least 10 chains."
 
-        error_msg = f"ESS values not computed, either runs_samples is not an array or requires chains >= 10"
-        assert chains >= 10
-
-    # calculate ess when there are greater than or equal to 10 chains
-    if isinstance(samples_dict, dict):
-        # print(f"Calculating ESS from samples for kappa={kappa} and ndim={ndim}..")
-        ess_vals = {method: None for method in METHODS}
-
-        # estimates ESS per dimension for every method
-        for method in METHODS:
-            # samples from all runs with shape (chains, draws, dimensions)
-            samples_per_method = samples_az[method]
-            ess_vals[method] = az.ess(samples_per_method, relative=True)[method]
-
-            # print ESS value per dimension
-            if verbose:
-                for i, vals in enumerate(ess_vals[method].values):
-                    print(f"{method} ESS dim {i+1}: {vals:.4%}")
-
-    else:
-        error_msg = f"ESS values not computed, either runs_samples is not an array or requires chains >= 10"
-        raise ValueError(error_msg)
+    ess_vals = {}
+    for method in METHODS:
+        samples = samples_az[method]
+        ess = az.ess(samples, relative=True)[method]
+        ess_vals[method] = ess
+        if verbose:
+            for i, val in enumerate(ess.values):
+                print(f"{method} ESS dim {i+1}: {val:.4%}")
 
     return ess_vals
 
 
-def calc_ess_varying_kappa(
-    kappas,
-    subdir=None,
-    ess_filename="ess_curve_varying_kappa.pkl",
-    n_dim=10,
-    n_runs=10,
+def calc_ess_varying_param(
+    param_values,
+    datasets,
+    ess_filepath,
     recompute_ess=False,
     verbose=False,
-    return_ess=False,
 ):
-    """Either loads from memory or calculates ESS for varying kappas (assumes 10 chains per kappa are precomputed).
+    """
+    Calculate or load ESS values for varying a parameter (kappas or dimensions).
 
     Parameters
     ----------
-    kappas : list[float]
-        varying concentration parameters
-    subdir : str, optional
-        Subdirectory consisting of all the files corresponding to varying kappas, by default None
-    ess_filename : str, optional
-        Filename for storing ESS values, by default "ess_curve_varying_kappa.pkl"
-    n_dim : int, optional
-        number of dimensions, by default 10
-    n_runs : int, optional
-        number of chains, by default 10
-    recompute_ess : bool, optional
-        whether or not to recompute ESS calculations, by default False
-    return_ess : bool, optional
-        whether or not to return ESS values, by default False
+    param_values : list
+        List of varying parameter values.
+    datasets : dict
+        Loaded datasets, indexed by parameter value.
+    ess_filepath : str
+        File path to save or load ESS values.
+    recompute_ess : bool
+    verbose : bool
+
+    Returns
+    -------
+    dict
+        ESS values indexed by parameter value and method.
     """
-
-    # loads samples for varying kappa as a dictionary with shape (chains, draws, dimensions) and
-    # accessed with data_dict[kappa][method]
-    subdir = (
-        f"results/curve_{n_dim}d_vary_kappa_nruns_{n_runs}"
-        if subdir is None
-        else subdir
-    )
-
-    ess_filepath = os.path.join(subdir, ess_filename)
     if recompute_ess or not os.path.exists(ess_filepath):
-
-        # load sampling for varying kappa
-        datasets_varying_kappa = load_samples_varying_kappa(
-            subdir,
-            kappas,
-            n_dim=n_dim,
-            n_runs=n_runs,
-        )
-
-        ess_kappas = {kappa: {} for kappa in kappas}
-        for kappa in kappas:
-            print(f"Calculating ESS for ndim={n_dim}, kappa={kappa}..")
-            ess_kappas[kappa] = calc_ess(
-                datasets_varying_kappa[kappa],
-                verbose=verbose,
-            )
-        dump(ess_kappas, ess_filepath)
+        ess_vals = {}
+        for param_value in param_values:
+            print(f"Calculating ESS for {param_value=}")
+            ess_vals[param_value] = calc_ess(datasets[param_value], verbose=verbose)
+        dump(ess_vals, ess_filepath)
     else:
-        ess_kappas = load(ess_filepath)
+        ess_vals = load(ess_filepath)
 
-    return ess_kappas if return_ess else None
+    return ess_vals
 
 
-def ess_plot_varying_kappa(
-    ess_kappas,
-    kappas: np.ndarray,
-    select_ndim: int = 0,
-) -> None:
+def ess_plot_varying_param(
+    ess_vals,
+    param_values,
+    param_name,
+    select_dim_idx: int = 0,
+) -> plt.Figure:
     """
-    Plotting relative ESS values in logscale for a given dimension `dim` amongst `d` dimensions against kappa
-    for all the samplers.
-    """
+    Plot ESS values against a varying parameter.
 
-    # extract ESS for only the given dimension `select_ndim` corresponding to every
-    # kappa and method
-    ess_single_ndim = {method: [] for method in METHODS}
+    Parameters
+    ----------
+    ess_vals : dict
+        ESS values indexed by parameter value and method.
+    param_values : list
+        List of parameter values.
+    param_name : str
+        Name of the parameter for labeling.
+    select_dim_idx : int
+        Index to select the ESS values that are computed for every dimension.
+
+    Returns
+    -------
+    plt.Figure
+    """
+    ess_single_dim = {method: [] for method in METHODS}
     for method in METHODS:
-        for kappa in kappas:
-            ess_vals = ess_kappas[kappa][method][select_ndim].values
-            ess_single_ndim[method].append(float(ess_vals))
+        for param_value in param_values:
+            ess_val = ess_vals[param_value][method][select_dim_idx].values
+            ess_single_dim[method].append(float(ess_val))
 
-    # plot relative ESS vs kappa
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    # Plotting
+    fig, ax = plt.subplots(figsize=(10, 6))
     markers = ["8", "s", "^", "P"]
     color_palette = sns.color_palette("deep", n_colors=len(METHODS))
     for i, method in enumerate(METHODS):
         label = ALGOS[method]
         ax.plot(
-            kappas,
-            ess_single_ndim[method],
+            param_values,
+            ess_single_dim[method],
             marker=markers[i],
             markersize=10,
             label=label,
@@ -255,32 +211,95 @@ def ess_plot_varying_kappa(
         )
     ax.set_yscale("log")
     ax.legend()
-    ax.set_xlabel(r"concentration parameter $\kappa$")
-    ax.set_ylabel("relative ESS (log)")
+    ax.set_xlabel(param_name)
+    ax.set_ylabel("Relative ESS (log)")
 
-    # Set the x-tick locations and labels
-    ax.set_xticks(kappas)
-    ax.set_xticklabels(kappas)
+    ax.set_xticks(param_values)
+    ax.set_xticklabels(param_values)
 
     fig.tight_layout()
-
     return fig
 
 
 if __name__ == "__main__":
 
-    kappas = np.arange(100, 900, 100)
-    subdir = f"results/curve_10d_vary_kappa_nruns_10"
-    ess_filename = "ess_curve_10d_varying_kappa.pkl"
-    ess_kappas = calc_ess_varying_kappa(
-        kappas,
-        subdir,
-        ess_filename,
-        n_dim=10,
-        n_runs=10,
-        return_ess=True,
-        recompute_ess=False,
-    )
+    plotting_varying_kappa = False
+    plotting_varying_ndim = True
 
-    fig = ess_plot_varying_kappa(ess_kappas, kappas=kappas, select_ndim=0)
-    fig.savefig(f"{subdir}/ess_curve_10d_varying_kappa.pdf", transparent=True, dpi=150)
+    if plotting_varying_kappa:
+        # parameters for loading samples and calculating ESS
+        kappas = np.arange(100, 900, 100)
+        n_dim = 10
+        n_runs = 10
+        subdir = f"results/curve_{n_dim}d_vary_kappa_nruns_{n_runs}"
+        ess_filename = "ess_curve_10d_varying_kappa_2.pkl"
+
+        # load samples for varying kappa
+        datasets_varying_kappa = load_samples(
+            base_path=subdir,
+            varying_param_values=kappas,
+            varying_param_name="kappa",
+            fixed_params={"n_dim": n_dim},
+            n_runs=n_runs,
+            verbose=False,
+        )
+
+        # calculate ESS
+        ess_filepath = os.path.join(subdir, ess_filename)
+        ess_kappas = calc_ess_varying_param(
+            param_values=kappas,
+            datasets=datasets_varying_kappa,
+            ess_filepath=ess_filepath,
+            recompute_ess=False,
+            verbose=False,
+        )
+
+        # plotting
+        fig = ess_plot_varying_param(
+            ess_vals=ess_kappas,
+            param_values=kappas,
+            param_name=r"Concentration parameter $\kappa$",
+            select_dim_idx=0,
+        )
+        fig.savefig(
+            f"{subdir}/ess_curve_10d_varying_kappa_2.pdf", transparent=True, dpi=150
+        )
+
+    if plotting_varying_ndim:
+        # parameters for loading samples and calculating ESS
+        kappa = 500.0
+        ndims = np.arange(3, 27, 3)
+        n_runs = 10
+        subdir = f"results/curve_kappa_{float(kappa)}_vary_ndim_nruns_{n_runs}"
+        ess_filename = f"ess_curve_kappa_{int(kappa)}_varying_ndim_2.pkl"
+
+        # load samples for varying n_dim
+        datasets_varying_ndim = load_samples(
+            base_path=subdir,
+            varying_param_values=ndims,
+            varying_param_name="n_dim",
+            fixed_params={"kappa": kappa},
+            n_runs=n_runs,
+            verbose=False,
+        )
+
+        # calculate ESS
+        ess_filepath = os.path.join(subdir, ess_filename)
+        ess_ndims = calc_ess_varying_param(
+            param_values=ndims,
+            datasets=datasets_varying_ndim,
+            ess_filepath=ess_filepath,
+            recompute_ess=False,
+            verbose=False,
+        )
+
+        # plotting
+        fig = ess_plot_varying_param(
+            ess_vals=ess_ndims,
+            param_values=ndims,
+            param_name="Dimensions $d$",
+            select_dim_idx=0,
+        )
+        fig.savefig(
+            f"{subdir}/ess_curve_kappa_{int(kappa)}_varying_ndim_2.pdf",
+        )
