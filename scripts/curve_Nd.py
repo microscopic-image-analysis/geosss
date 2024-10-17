@@ -14,6 +14,14 @@ from geosss.spherical_curve import SlerpCurve, SphericalCurve
 
 mpl.rcParams["mathtext.fontset"] = "cm"  # Use Computer Modern font
 
+METHODS = ("sss-reject", "sss-shrink", "rwmh", "hmc")
+ALGOS = {
+    "sss-reject": "geoSSS (reject)",
+    "sss-shrink": "geoSSS (shrink)",
+    "rwmh": "RWMH",
+    "hmc": "HMC",
+}
+
 
 def setup_logging(savedir: str, kappa: float, filemode: str = "a"):
     """Setting up logging
@@ -149,7 +157,15 @@ def visualize_samples(
     return fig
 
 
-def scatter_matrix(n_dim, samples, methods, path, filename, savefig=False):
+def scatter_matrix(
+    n_dim: int,
+    samples: dict,
+    methods: tuple,
+    algos: dict,
+    path: str,
+    filename: str,
+    savefig: bool = False,
+):
     """
     Plotting scatter matrix with the corner library and adjusted label sizes
     """
@@ -216,7 +232,12 @@ def scatter_matrix(n_dim, samples, methods, path, filename, savefig=False):
 
     # Create custom legend with the figure instance
     legend_handles = [plt.Line2D([0], [0], color=color, lw=4) for color in colors]
-    figure.legend(legend_handles, methods, loc="upper right", fontsize=legend_size)
+    figure.legend(
+        legend_handles,
+        [algos[method] for method in methods],
+        loc="upper right",
+        fontsize=legend_size,
+    )
 
     # Adjust tick label sizes for all axes
     axes = np.array(figure.axes).reshape((n_dim, n_dim))
@@ -345,13 +366,6 @@ if __name__ == "__main__":
 
     # `tester` instances samplers
     launcher = gs.SamplerLauncher(pdf, initial, n_samples, burnin, seed_samplers)
-    methods = ("sss-reject", "sss-shrink", "rwmh", "hmc")
-    algos = {
-        "sss-reject": "geoSSS (reject)",
-        "sss-shrink": "geoSSS (shrink)",
-        "rwmh": "RWMH",
-        "hmc": "HMC",
-    }
 
     # load samples by running or loading from memory
     samples, logprob = launch_samplers(
@@ -359,13 +373,13 @@ if __name__ == "__main__":
         kappa,
         pdf,
         launcher,
-        methods,
+        METHODS,
         rerun_if_samples_exists,
     )
 
     # plot samples on a 3d sphere
     if n_dim == 3:
-        fig = visualize_samples(samples, methods, algos, curve)
+        fig = visualize_samples(samples, METHODS, ALGOS, curve)
         if savefig:
             fig.savefig(
                 f"{savedir}/curve_samples_kappa{int(kappa)}.pdf",
@@ -379,7 +393,8 @@ if __name__ == "__main__":
     scatter_matrix(
         n_dim,
         samples,
-        methods,
+        METHODS,
+        ALGOS,
         savedir,
         f"curve_corner_{n_dim}d_kappa{int(kappa)}",
         savefig=True,
@@ -391,9 +406,9 @@ if __name__ == "__main__":
         fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
         for dim, ax in enumerate(axes):
             ax.set_title(rf"$x_{dim+1}$", fontsize=20)
-            for method in methods:
+            for method in METHODS:
                 ac = gs.acf(samples[method][:, dim], 250)
-                ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
+                ax.plot(ac, alpha=0.7, lw=3, label=ALGOS[method])
             ax.axhline(0.0, ls="--", color="k", alpha=0.7)
             ax.set_xlabel(r"lag", fontsize=fs)
         axes[0].set_ylabel("ACF", fontsize=fs)
@@ -408,11 +423,11 @@ if __name__ == "__main__":
 
         # geodesic distance between successive samples
         fig, axes = plt.subplots(
-            1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
+            1, len(METHODS), figsize=(len(METHODS) * 3, 3), sharex=True, sharey=True
         )
         bins = 100
-        for ax, method in zip(axes, methods):
-            ax.set_title(algos[method], fontsize=fs)
+        for ax, method in zip(axes, METHODS):
+            ax.set_title(ALGOS[method], fontsize=fs)
             # distance between successive samples
             x = samples[method]
             geo_dist = gs.distance(x[:-1], x[1:])
@@ -446,10 +461,10 @@ if __name__ == "__main__":
             # NOTE: This is repeated from above with just the lag=1000
             fig, axes = plt.subplots(3, 4, figsize=(12, 9), sharex=True, sharey=True)
             lag = 1000
-            for ax, method in zip(axes[0], methods):
-                ax.set_title(algos[method], fontsize=fs)
+            for ax, method in zip(axes[0], METHODS):
+                ax.set_title(ALGOS[method], fontsize=fs)
             for dim in range(3):
-                for ax, method in zip(axes[dim], methods):
+                for ax, method in zip(axes[dim], METHODS):
                     ac = gs.acf(samples[method][:, dim], lag)
                     ax.plot(ac, alpha=0.7, color="k", lw=3)
                     ax.axhline(0.0, ls="--", color="r", alpha=0.7)
@@ -463,7 +478,7 @@ if __name__ == "__main__":
 
             # autocorrelation between logprob of the samples
             fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
-            for ax, method in zip(axes, methods):
+            for ax, method in zip(axes, METHODS):
                 ac = gs.acf(logprob[method], 1000)
                 ax.plot(ac, color="k", alpha=1.0, lw=3)
                 ax.set_xlim(-5, 200)
@@ -473,13 +488,13 @@ if __name__ == "__main__":
             bins = 50
             plt.rc("font", size=fs)
             fig, rows = plt.subplots(
-                n_dim, len(methods), figsize=(10, 15), sharex=True, sharey=True
+                n_dim, len(METHODS), figsize=(10, 15), sharex=True, sharey=True
             )
             for dim, axes in enumerate(rows):
                 vals = x[:, dim]
                 # ref = list(np.histogram(vals, weights=p, bins=bins, density=True))
                 # ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
-                for ax, method in zip(axes, methods):
+                for ax, method in zip(axes, METHODS):
                     bins = ax.hist(
                         samples[method][:, dim],
                         bins=bins,
@@ -490,8 +505,8 @@ if __name__ == "__main__":
                     )[1]
                     # ax.plot(*ref[::-1], color="r", lw=1, ls="--")
                     ax.set_xlabel(rf"$e_{dim}^Tx_n$", fontsize=fs)
-            for ax, method in zip(rows[0], methods):
-                ax.set_title(algos[method], fontsize=fs)
+            for ax, method in zip(rows[0], METHODS):
+                ax.set_title(ALGOS[method], fontsize=fs)
             fig.tight_layout()
             if savefig:
                 fig.savefig(

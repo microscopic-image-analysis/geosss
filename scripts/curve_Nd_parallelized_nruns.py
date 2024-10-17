@@ -289,7 +289,7 @@ def main():
     if args["out_dir"] is not None:
         savedir = args["out_dir"]
     else:
-        savedir = f"results/curve_{n_dim}d_kappa_{kappa}"
+        savedir = f"results/curve_{n_dim}d_kappa_{float(kappa)}"
 
     # Create the directory if it doesn't exist
     os.makedirs(savedir, exist_ok=True)
@@ -300,7 +300,7 @@ def main():
     # optional controls
     brownian_curve = True  # brownian curve or curve with fixed knots
     reprod_switch = True  # seeds samplers for reproducibility
-    rerun_if_samples_exists = True  # rerun even if samples file exists
+    rerun_if_samples_exists = False  # rerun even if samples file exists
 
     # creating a target as a curve on the sphere
     if not brownian_curve:
@@ -345,8 +345,8 @@ def main():
         "rwmh": "RWMH",
         "hmc": "HMC",
     }
-    savepath_samples_base = f"{savedir}/curve_samples_{n_dim}d_kappa_{kappa}"
-    savepath_logprob_base = f"{savedir}/curve_logprob_{n_dim}d_kappa_{kappa}"
+    savepath_samples_base = f"{savedir}/curve_samples_{n_dim}d_kappa_{float(kappa)}"
+    savepath_logprob_base = f"{savedir}/curve_logprob_{n_dim}d_kappa_{float(kappa)}"
 
     load_or_launch_samplers(
         methods,

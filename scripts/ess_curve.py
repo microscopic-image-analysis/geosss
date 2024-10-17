@@ -1,3 +1,6 @@
+# ESS computed for the curve on the sphere by varying the number of dimensions and
+# the concentration parameter kappa.
+
 import os
 
 import arviz as az
