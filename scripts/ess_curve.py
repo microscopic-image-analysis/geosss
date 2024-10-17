@@ -235,7 +235,7 @@ if __name__ == "__main__":
         n_dim = 10
         n_runs = 10
         subdir = f"results/curve_{n_dim}d_vary_kappa_nruns_{n_runs}"
-        ess_filename = "ess_curve_10d_varying_kappa_2.pkl"
+        ess_filename = "ess_curve_10d_varying_kappa.pkl"
 
         # load samples for varying kappa
         datasets_varying_kappa = load_samples(
@@ -265,7 +265,7 @@ if __name__ == "__main__":
             select_dim_idx=0,
         )
         fig.savefig(
-            f"{subdir}/ess_curve_10d_varying_kappa_2.pdf", transparent=True, dpi=150
+            f"{subdir}/ess_curve_10d_varying_kappa.pdf", transparent=True, dpi=150
         )
 
     if plotting_varying_ndim:
@@ -274,7 +274,7 @@ if __name__ == "__main__":
         ndims = np.arange(3, 27, 3)
         n_runs = 10
         subdir = f"results/curve_kappa_{float(kappa)}_vary_ndim_nruns_{n_runs}"
-        ess_filename = f"ess_curve_kappa_{int(kappa)}_varying_ndim_2.pkl"
+        ess_filename = f"ess_curve_kappa_{int(kappa)}_varying_ndim.pkl"
 
         # load samples for varying n_dim
         datasets_varying_ndim = load_samples(
@@ -304,5 +304,5 @@ if __name__ == "__main__":
             select_dim_idx=0,
         )
         fig.savefig(
-            f"{subdir}/ess_curve_kappa_{int(kappa)}_varying_ndim_2.pdf",
+            f"{subdir}/ess_curve_kappa_{int(kappa)}_varying_ndim.pdf",
         )
