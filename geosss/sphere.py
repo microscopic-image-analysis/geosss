@@ -179,26 +179,32 @@ def constrained_brownian_curve_on_sphere(
     # Initialize the direction of motion (tangent vector at the first point)
     v = rng.standard_normal(dimension)
     v -= np.dot(v, points[0]) * points[0]  # Make v orthogonal to points[0]
-    v /= np.linalg.norm(v)
+    v /= np.linalg.norm(v)  # Normalize the tangent vector
 
     for i in range(1, n_points):
         # Generate a small random perturbation orthogonal to both v and points[i - 1]
         random_step = rng.standard_normal(dimension)
-        random_step -= (
-            np.dot(random_step, points[i - 1]) * points[i - 1]
-        )  # Make it tangent to the sphere
-        random_step -= np.dot(random_step, v) * v  # Make it orthogonal to v
+
+        # Make the random perturbation tangent to the sphere at points[i - 1]
+        random_step -= np.dot(random_step, points[i - 1]) * points[i - 1]
+
+        # Make the random perturbation orthogonal to the current direction v
+        random_step -= np.dot(random_step, v) * v
+
+        # Normalize the random_step so that it lies on the tangent plane
         random_step /= np.linalg.norm(random_step)
+
+        # Scale the random_step with the given step size
         random_step *= step_size
 
         # Update the tangent vector v
         v += random_step
-        v -= (
-            np.dot(v, points[i - 1]) * points[i - 1]
-        )  # Ensure v is tangent to the sphere
+
+        # Ensure the updated tangent vector v remains tangent to the sphere
+        v -= np.dot(v, points[i - 1]) * points[i - 1]
         v /= np.linalg.norm(v)
 
-        # Move along v by a fixed small angle
+        # Move the point along v by a small angle (step_size)
         angle = step_size
         points[i] = points[i - 1] * np.cos(angle) + v * np.sin(angle)
 
