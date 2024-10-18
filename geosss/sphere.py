@@ -155,3 +155,51 @@ def brownian_curve_on_sphere(n_points=100, dimension=6, step_size=0.05, seed=123
         points[i] = radial_projection(new_point)
 
     return points
+
+
+def constrained_brownian_curve_on_sphere(
+    n_points=100, dimension=6, step_size=0.05, seed=1234
+):
+    """
+    Generate smooth points on a unit d-sphere using constrained Brownian motion
+    to avoid loops and overlaps.
+
+    Parameters:
+    n_points: number of points to generate
+    dimension: dimension of the sphere (must be at least 2)
+    step_size: step size for the motion
+    seed: random seed
+    """
+    rng = np.random.default_rng(seed)
+
+    # Initialize the first point on the (dimension - 1)-sphere
+    points = np.zeros((n_points, dimension))
+    points[0] = radial_projection(rng.standard_normal(dimension))
+
+    # Initialize the direction of motion (tangent vector at the first point)
+    v = rng.standard_normal(dimension)
+    v -= np.dot(v, points[0]) * points[0]  # Make v orthogonal to points[0]
+    v /= np.linalg.norm(v)
+
+    for i in range(1, n_points):
+        # Generate a small random perturbation orthogonal to both v and points[i - 1]
+        random_step = rng.standard_normal(dimension)
+        random_step -= (
+            np.dot(random_step, points[i - 1]) * points[i - 1]
+        )  # Make it tangent to the sphere
+        random_step -= np.dot(random_step, v) * v  # Make it orthogonal to v
+        random_step /= np.linalg.norm(random_step)
+        random_step *= step_size
+
+        # Update the tangent vector v
+        v += random_step
+        v -= (
+            np.dot(v, points[i - 1]) * points[i - 1]
+        )  # Ensure v is tangent to the sphere
+        v /= np.linalg.norm(v)
+
+        # Move along v by a fixed small angle
+        angle = step_size
+        points[i] = points[i - 1] * np.cos(angle) + v * np.sin(angle)
+
+    return points
