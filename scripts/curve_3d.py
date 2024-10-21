@@ -246,13 +246,13 @@ if __name__ == "__main__":
     burnin = int(0.1 * n_samples)  # burn-in
 
     # optional controls
-    brownian_curve = True  # fix curve (target)
+    brownian_curve = False  # fix curve (target)
     reprod_switch = True  # seeds samplers for reproducibility
     savefig = True  # save the plots
     rerun_if_file_exists = True  # rerun even if file exists
 
     # directory to save results and log info
-    savedir = f"results/vMF_curve_3d_kappa{int(kappa)}_brownian_curve"
+    savedir = f"results/vMF_curve_3d_kappa{int(kappa)}"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
