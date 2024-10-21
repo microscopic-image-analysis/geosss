@@ -73,7 +73,7 @@ class SphericalSpline(SphericalCurve):
 
 class SlerpCurve(SphericalCurve):
     """SlerpCurve
-    Spherical linear interpolation between the defined knots on the N-sphere
+    Spherical linear interpolation (SLERP) between the defined knots on the N-sphere
     """
 
     def __init__(self, knots):

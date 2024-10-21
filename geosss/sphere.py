@@ -130,7 +130,7 @@ def givens(u, v, x):
     return rotate
 
 
-def brownian_curve_on_sphere(n_points=100, dimension=6, step_size=0.05, seed=1234):
+def brownian_curve(n_points=100, dimension=6, step_size=0.05, seed=1234):
     """
     Generate smooth points on a unit d-sphere using Brownian motion.
 
@@ -157,9 +157,7 @@ def brownian_curve_on_sphere(n_points=100, dimension=6, step_size=0.05, seed=123
     return points
 
 
-def constrained_brownian_curve_on_sphere(
-    n_points=100, dimension=6, step_size=0.05, seed=1234
-):
+def constrained_brownian_curve(n_points=100, dimension=6, step_size=0.05, seed=1234):
     """
     Generate smooth points on a unit d-sphere using constrained Brownian motion
     to avoid loops and overlaps.

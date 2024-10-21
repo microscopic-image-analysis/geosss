@@ -343,7 +343,7 @@ if __name__ == "__main__":
 
     else:
         # generates a smooth curve on the sphere with brownian motion
-        knots = gs.sphere.brownian_curve_on_sphere(
+        knots = gs.sphere.brownian_curve(
             n_points=10,
             dimension=n_dim,
             step_size=0.5,  # larger step size will result in more spread out points
