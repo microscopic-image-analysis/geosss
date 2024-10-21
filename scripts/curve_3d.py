@@ -156,6 +156,8 @@ def visualize_curve_3d(
     num_theta=300,
     num_phi=300,
     fontsize=16,
+    elev=62,
+    azim=11,
 ):
     for method in METHODS:
         assert samples[method].shape[1] == 3, "Visualization accepts only 3D samples."
@@ -173,7 +175,7 @@ def visualize_curve_3d(
     # Flatten the arrays to compute PDF values
     xyz = np.column_stack((X.ravel(), Y.ravel(), Z.ravel()))
 
-    # true pdf values
+    # true PDF values
     log_p = pdf.log_prob(xyz)
     prob_truth = np.exp(log_p - logsumexp(log_p))
     grid_values = prob_truth.reshape(X.shape)
@@ -182,8 +184,28 @@ def visualize_curve_3d(
     pdfnorm = Normalize(vmin=grid_values.min(), vmax=grid_values.max())
 
     fig, axes = plt.subplots(
-        1, 4, figsize=(16, 6), subplot_kw={"projection": "3d"}, sharex=True, sharey=True
+        1,
+        len(METHODS),
+        figsize=(16, 6),
+        subplot_kw={"projection": "3d"},
+        sharex=True,
+        sharey=True,
     )
+
+    # Compute the viewing vector
+    def _get_view_vector(elev, azim):
+        """Convert elevation and azimuth to viewing vector."""
+        elev_rad = np.deg2rad(elev)
+        azim_rad = np.deg2rad(azim)
+
+        # Adjust azimuth to match Matplotlib's convention
+        x = np.cos(elev_rad) * np.cos(azim_rad)
+        y = np.cos(elev_rad) * np.sin(azim_rad)
+        z = np.sin(elev_rad)
+        return np.array([x, y, z])
+
+    # View vector
+    view_vector = _get_view_vector(elev, azim)
 
     for ax, method in zip(axes.flat, METHODS):
         ax.computed_zorder = False
@@ -203,12 +225,29 @@ def visualize_curve_3d(
             edgecolor="none",
         )
 
-        # scattering every 40th sample (2500 out of 100000)
-        sample_points = samples[method][::40]
-        ax.scatter(*sample_points.T, c="k", s=1, alpha=0.16, zorder=2)
+        # Select every 20th sample
+        sample_points = samples[method][::20]
+        dot_products = np.dot(sample_points, view_vector)
+
+        # Map dot products to alpha values
+        # Desired alpha range: 0 (fully transparent) to 0.17 (your specified alpha for visible points)
+        min_alpha = 0.0  # Minimum alpha for back-facing points
+        max_alpha = 0.18  # Maximum alpha for front-facing points
+
+        # Normalize dot products from [-1, 1] to [min_alpha, max_alpha]
+        alpha_values = min_alpha + ((dot_products + 1) / 2) * (max_alpha - min_alpha)
+        alpha_values = np.clip(alpha_values, min_alpha, max_alpha)
+
+        # Create colors with varying alpha, base color black
+        colors = np.zeros((sample_points.shape[0], 4))
+        colors[:, :3] = 0  # RGB = [0, 0, 0] for black color
+        colors[:, 3] = alpha_values  # Alpha channel
+
+        ax.scatter(*sample_points.T, c=colors, s=2, zorder=2)
+
         ax.set_title(ALGOS[method], pad=-50, fontsize=fontsize)
         ax.set_aspect("auto")
-        ax.view_init(9, 8)
+        ax.view_init(elev, azim)
         ax.axis("off")
 
     plt.subplots_adjust(wspace=-0.1, hspace=-0.2)
@@ -249,7 +288,7 @@ if __name__ == "__main__":
     brownian_curve = False  # fix curve (target)
     reprod_switch = True  # seeds samplers for reproducibility
     savefig = True  # save the plots
-    rerun_if_file_exists = True  # rerun even if file exists
+    rerun_if_file_exists = False  # rerun even if file exists
 
     # directory to save results and log info
     savedir = f"results/vMF_curve_3d_kappa{int(kappa)}"
@@ -331,6 +370,7 @@ if __name__ == "__main__":
             dpi=300,
         )
 
+if False:
     # generate figures
     fs = 16
     fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
