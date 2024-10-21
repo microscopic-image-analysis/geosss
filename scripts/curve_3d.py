@@ -2,18 +2,18 @@
 import argparse
 import logging
 import os
-from contextlib import redirect_stdout
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as opt
 from csb.io import dump, load
+from matplotlib.colors import Normalize
 from scipy.spatial import cKDTree
 from scipy.special import logsumexp
 
 import geosss as gs
-from geosss.spherical_curve import SlerpCurve, SphericalCurve
 from geosss.distributions import CurvedVonMisesFisher, Distribution
+from geosss.spherical_curve import SlerpCurve
 
 
 def saff_sphere(N: int = 1000) -> np.ndarray:
@@ -43,7 +43,7 @@ def test_gradient(pdf):
     print(f"error to check correctness of gradient:, {err}")
 
 
-def setup_logging(savedir: str, kappa: float):
+def setup_logging(savedir: str, kappa: float, filemode: str = "a"):
     """Setting up logging
 
     Parameters
@@ -56,7 +56,7 @@ def setup_logging(savedir: str, kappa: float):
     logpath = f"{savedir}/curve_kappa{int(kappa)}_log.txt"
     logging.basicConfig(
         filename=logpath,
-        filemode="w",  # 'w' to overwrite the log file, 'a' to append
+        filemode=filemode,  # 'w' to overwrite the log file, 'a' to append
         format="%(asctime)s - %(levelname)s - %(message)s",
         level=logging.INFO,
     )
@@ -123,6 +123,7 @@ def launch_samplers(
     savepath_samples = f"{savedir}/curve_samples_kappa{int(kappa)}.pkl"
     savepath_logprob = f"{savedir}/curve_logprob_kappa{int(kappa)}.pkl"
 
+    # load existing files
     if (
         not rerun_if_file_exists
         and os.path.exists(savepath_samples)
@@ -133,6 +134,8 @@ def launch_samplers(
 
         logprob = load(savepath_logprob)
         logging.info(f"Loading file {savepath_logprob}")
+
+    # or run samplers
     else:
         samples, logprob = _start_sampling(
             methods,
@@ -145,32 +148,70 @@ def launch_samplers(
     return samples, logprob
 
 
-def visualize_samples(
+def visualize_curve_3d(
+    pdf: Distribution,
     samples: dict,
-    methods: tuple,
-    algos: dict,
-    curve: SphericalCurve,
+    METHODS: tuple,
+    ALGOS: dict,
+    num_theta=300,
+    num_phi=300,
+    fontsize=16,
 ):
-    """visualize samples on a 3d sphere"""
-    phi, theta = np.mgrid[0 : np.pi : 20j, 0 : 2 * np.pi : 30j]
-    euler = (np.sin(phi) * np.cos(theta), np.sin(phi) * np.sin(theta), np.cos(phi))
-    t = np.linspace(0, 1, 1_000)  # points on curve
+    for method in METHODS:
+        assert samples[method].shape[1] == 3, "Visualization accepts only 3D samples."
 
-    fig, axes = plt.subplots(
-        2, 2, figsize=(8, 8), subplot_kw=dict(projection="3d"), sharex=True, sharey=True
+    # Create a regular grid over θ and φ
+    theta_grid, phi_grid = np.meshgrid(
+        np.linspace(0, np.pi, num_theta), np.linspace(0, 2 * np.pi, num_phi)
     )
 
-    for ax, method in zip(axes.flat, methods):
+    # Convert the spherical grid to Cartesian coordinates
+    X = np.sin(theta_grid) * np.cos(phi_grid)
+    Y = np.sin(theta_grid) * np.sin(phi_grid)
+    Z = np.cos(theta_grid)
+
+    # Flatten the arrays to compute PDF values
+    xyz = np.column_stack((X.ravel(), Y.ravel(), Z.ravel()))
+
+    # true pdf values
+    log_p = pdf.log_prob(xyz)
+    prob_truth = np.exp(log_p - logsumexp(log_p))
+    grid_values = prob_truth.reshape(X.shape)
+
+    # Normalize for color mapping
+    pdfnorm = Normalize(vmin=grid_values.min(), vmax=grid_values.max())
+
+    fig, axes = plt.subplots(
+        1, 4, figsize=(16, 6), subplot_kw={"projection": "3d"}, sharex=True, sharey=True
+    )
+
+    for ax, method in zip(axes.flat, METHODS):
         ax.computed_zorder = False
-        ax.plot_wireframe(*euler, color="green", alpha=0.06, zorder=1)
-        ax.plot_surface(*euler, cmap="viridis", alpha=0.07, zorder=2)
-        x = samples[method][: int(1e4)]
-        ax.set_title(algos[method])
-        ax.plot(*curve(t).T, color="r", alpha=0.9, lw=3, zorder=3)
-        ax.scatter(*x.T, c="k", s=1, alpha=0.08, zorder=4)
-        ax.set_aspect("equal")
-        ax.view_init(-140, 20)
-    fig.tight_layout()
+
+        ax.plot_wireframe(X, Y, Z, color="lightgrey", alpha=0.05, zorder=3)
+        ax.plot_surface(
+            X,
+            Y,
+            Z,
+            facecolors=plt.cm.terrain_r(pdfnorm(grid_values)),
+            alpha=1,
+            zorder=1,
+            rstride=1,
+            cstride=1,
+            antialiased=False,
+            shade=False,
+            edgecolor="none",
+        )
+
+        # scattering every 40th sample (2500 out of 100000)
+        sample_points = samples[method][::40]
+        ax.scatter(*sample_points.T, c="k", s=1, alpha=0.16, zorder=2)
+        ax.set_title(ALGOS[method], pad=-50, fontsize=fontsize)
+        ax.set_aspect("auto")
+        ax.view_init(9, 8)
+        ax.axis("off")
+
+    plt.subplots_adjust(wspace=-0.1, hspace=-0.2)
 
     return fig
 
@@ -192,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_samples",
         type=float,
-        default=1e3,
+        default=1e5,
         help="Number of samples per sampler (default: 1000)",
     )
 
@@ -205,18 +246,18 @@ if __name__ == "__main__":
     burnin = int(0.1 * n_samples)  # burn-in
 
     # optional controls
-    fix_curve = True  # fix curve (target)
+    brownian_curve = True  # fix curve (target)
     reprod_switch = True  # seeds samplers for reproducibility
     savefig = True  # save the plots
     rerun_if_file_exists = True  # rerun even if file exists
 
     # directory to save results and log info
-    savedir = f"results/vMF_curve_3d_kappa{int(kappa)}"
+    savedir = f"results/vMF_curve_3d_kappa{int(kappa)}_brownian_curve"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
     # define curve on the sphere
-    if fix_curve:
+    if not brownian_curve:
         knots = np.array(
             [
                 [-0.25882694, 0.95006168, 0.17433133],
@@ -231,10 +272,15 @@ if __name__ == "__main__":
                 [-0.6770828, 0.05213374, -0.73405787],
             ]
         )
-        curve = SlerpCurve(knots)
     else:
-        curve = SlerpCurve.random_curve(n_knots=10, seed=None, dimension=3)
+        knots = gs.sphere.constrained_brownian_curve(
+            n_points=10,
+            dimension=3,
+            step_size=0.3,
+            seed=72367 if reprod_switch else None,
+        )
 
+    curve = SlerpCurve(knots)
     pdf = CurvedVonMisesFisher(curve, kappa)
 
     # eval density
@@ -276,13 +322,13 @@ if __name__ == "__main__":
         rerun_if_file_exists,
     )
 
-    # plot samples on a 3d sphere
-    fig = visualize_samples(samples, methods, algos, curve)
+    fig = visualize_curve_3d(pdf, samples, methods, algos)
     if savefig:
         fig.savefig(
-            f"{savedir}/curve_samples_kappa{int(kappa)}.pdf",
+            f"{savedir}/sph_curve_kappa{int(kappa)}.pdf",
             bbox_inches="tight",
             transparent=True,
+            dpi=300,
         )
 
     # generate figures
