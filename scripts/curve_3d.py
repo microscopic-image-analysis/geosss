@@ -225,14 +225,14 @@ def visualize_curve_3d(
             edgecolor="none",
         )
 
-        # Select every 20th sample
-        sample_points = samples[method][::20]
+        # Select the first 10000 samples
+        sample_points = samples[method][:10000]
         dot_products = np.dot(sample_points, view_vector)
 
         # Map dot products to alpha values
-        # Desired alpha range: 0 (fully transparent) to 0.17 (your specified alpha for visible points)
+        # Desired alpha range: 0.0 (fully transparent) to max_alpha (for visible points)
         min_alpha = 0.0  # Minimum alpha for back-facing points
-        max_alpha = 0.18  # Maximum alpha for front-facing points
+        max_alpha = 0.1  # Maximum alpha for front-facing points
 
         # Normalize dot products from [-1, 1] to [min_alpha, max_alpha]
         alpha_values = min_alpha + ((dot_products + 1) / 2) * (max_alpha - min_alpha)
@@ -240,9 +240,10 @@ def visualize_curve_3d(
 
         # Create colors with varying alpha, base color black
         colors = np.zeros((sample_points.shape[0], 4))
-        colors[:, :3] = 0  # RGB = [0, 0, 0] for black color
-        colors[:, 3] = alpha_values  # Alpha channel
+        colors[:, :3] = 0  # for black color
+        colors[:, 3] = alpha_values  # custom alpha values
 
+        # scatter points and specify the custom colors
         ax.scatter(*sample_points.T, c=colors, s=2, zorder=2)
 
         ax.set_title(ALGOS[method], pad=-50, fontsize=fontsize)
