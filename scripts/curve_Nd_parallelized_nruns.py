@@ -8,7 +8,7 @@ from joblib import Parallel, delayed
 
 import geosss as gs
 from geosss.distributions import CurvedVonMisesFisher, Distribution
-from geosss.spherical_curve import SlerpCurve
+from geosss.spherical_curve import SlerpCurve, brownian_curve
 
 
 def setup_logging(
@@ -298,12 +298,12 @@ def main():
     assert n_dim >= 3, msg
 
     # optional controls
-    brownian_curve = True  # brownian curve or curve with fixed knots
+    is_brownian_curve = True  # brownian curve or curve with fixed knots
     reprod_switch = True  # seeds samplers for reproducibility
     rerun_if_samples_exists = False  # rerun even if samples file exists
 
     # creating a target as a curve on the sphere
-    if not brownian_curve:
+    if not is_brownian_curve:
         knots = np.array(
             [
                 [-0.25882694, 0.95006168, 0.17433133],
@@ -325,13 +325,14 @@ def main():
 
     else:
         # generates a smooth curve on the sphere with brownian motion
-        knots = gs.sphere.brownian_curve(
+        knots = brownian_curve(
             n_points=10,
             dimension=n_dim,
             step_size=0.5,  # larger step size will result in more spread out points
             seed=4562,
         )
 
+    logging.info(f"Target curve: {knots}")
     # defining the curve on the sphere
     curve = SlerpCurve(knots)
 

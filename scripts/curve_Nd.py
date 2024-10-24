@@ -10,7 +10,7 @@ from csb.io import dump, load
 
 import geosss as gs
 from geosss.distributions import CurvedVonMisesFisher, Distribution
-from geosss.spherical_curve import SlerpCurve, SphericalCurve
+from geosss.spherical_curve import SlerpCurve, SphericalCurve, brownian_curve
 
 mpl.rcParams["mathtext.fontset"] = "cm"  # Use Computer Modern font
 
@@ -307,7 +307,7 @@ if __name__ == "__main__":
     n_runs = args.n_runs  # sampler runs (default: 1), for ess computations `n_runs=10`
 
     # optional controls
-    brownian_curve = True  # brownian curve or curve with fixed knots
+    is_brownian_curve = True  # brownian curve or curve with fixed knots
     reprod_switch = True  # seeds samplers for reproducibility
     show_plots = True  # show the plots
     savefig = True  # save the plots
@@ -319,7 +319,7 @@ if __name__ == "__main__":
     setup_logging(savedir, kappa)
 
     # Define curve on the sphere
-    if not brownian_curve:
+    if not is_brownian_curve:
         knots = np.array(
             [
                 [-0.25882694, 0.95006168, 0.17433133],
@@ -339,18 +339,16 @@ if __name__ == "__main__":
         if n_dim > knots.shape[1]:
             knots = np.pad(knots, ((0, 0), (n_dim - knots.shape[1], 0)))
 
-        curve = SlerpCurve(knots)
-
     else:
         # generates a smooth curve on the sphere with brownian motion
-        knots = gs.sphere.brownian_curve(
+        knots = brownian_curve(
             n_points=10,
             dimension=n_dim,
             step_size=0.5,  # larger step size will result in more spread out points
             seed=4562,
         )
-        curve = SlerpCurve(knots)
-        # curve = SlerpCurve.random_curve(n_knots=100, seed=4562, dimension=n_dim)
+
+    curve = SlerpCurve(knots)
 
     # Initialize based on dimensionality
     initial = (

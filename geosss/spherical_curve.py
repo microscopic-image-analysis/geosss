@@ -100,3 +100,82 @@ class SlerpCurve(SphericalCurve):
             distances.append(d)
             points.append(y)
         return points[np.argmin(distances)]
+
+
+def brownian_curve(n_points=100, dimension=6, step_size=0.05, seed=1234):
+    """
+    Generate smooth points on a unit d-sphere using Brownian motion.
+
+    Parameters:
+    n_points: number of points to generate
+    dimension: dimension of the sphere
+    step_size: step size for the Brownian motion, increasing it will make the points jump more
+    seed: random seed
+    """
+    rng = np.random.default_rng(seed)
+
+    # Initialize the first point on the dimension-1 -sphere
+    points = np.zeros((n_points, dimension))
+    points[0] = sphere.radial_projection(rng.standard_normal(dimension))
+
+    # Generate subsequent points via Brownian motion (small random steps)
+    for i in range(1, n_points):
+        step = rng.normal(size=dimension) * step_size
+        new_point = points[i - 1] + step
+
+        # Project back to the unit sphere
+        points[i] = sphere.radial_projection(new_point)
+
+    return points
+
+
+def constrained_brownian_curve(n_points=100, dimension=6, step_size=0.05, seed=1234):
+    """
+    Generate smooth points on a unit d-sphere using constrained Brownian motion
+    to avoid loops and overlaps.
+
+    Parameters:
+    n_points: number of points to generate
+    dimension: dimension of the sphere (must be at least 2)
+    step_size: step size for the motion
+    seed: random seed
+    """
+    rng = np.random.default_rng(seed)
+
+    # Initialize the first point on the (dimension - 1)-sphere
+    points = np.zeros((n_points, dimension))
+    points[0] = sphere.radial_projection(rng.standard_normal(dimension))
+
+    # Initialize the direction of motion (tangent vector at the first point)
+    v = rng.standard_normal(dimension)
+    v -= np.dot(v, points[0]) * points[0]  # Make v orthogonal to points[0]
+    v /= np.linalg.norm(v)  # Normalize the tangent vector
+
+    for i in range(1, n_points):
+        # Generate a small random perturbation orthogonal to both v and points[i - 1]
+        random_step = rng.standard_normal(dimension)
+
+        # Make the random perturbation tangent to the sphere at points[i - 1]
+        random_step -= np.dot(random_step, points[i - 1]) * points[i - 1]
+
+        # Make the random perturbation orthogonal to the current direction v
+        random_step -= np.dot(random_step, v) * v
+
+        # Normalize the random_step so that it lies on the tangent plane
+        random_step /= np.linalg.norm(random_step)
+
+        # Scale the random_step with the given step size
+        random_step *= step_size
+
+        # Update the tangent vector v
+        v += random_step
+
+        # Ensure the updated tangent vector v remains tangent to the sphere
+        v -= np.dot(v, points[i - 1]) * points[i - 1]
+        v /= np.linalg.norm(v)
+
+        # Move the point along v by a small angle (step_size)
+        angle = step_size
+        points[i] = points[i - 1] * np.cos(angle) + v * np.sin(angle)
+
+    return points
