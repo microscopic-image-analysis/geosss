@@ -13,7 +13,7 @@ from scipy.special import logsumexp
 
 import geosss as gs
 from geosss.distributions import CurvedVonMisesFisher, Distribution
-from geosss.spherical_curve import SlerpCurve
+from geosss.spherical_curve import SlerpCurve, constrained_brownian_curve
 
 plt.rc("font", size=16)
 
@@ -415,7 +415,7 @@ if __name__ == "__main__":
     burnin = int(0.1 * n_samples)  # burn-in
 
     # optional controls
-    brownian_curve = False  # fix curve (target)
+    is_brownian_curve = False  # fix curve (target)
     reprod_switch = True  # seeds samplers for reproducibility
     savefig = True  # save the plots
     rerun_if_file_exists = False  # rerun even if file exists
@@ -426,7 +426,7 @@ if __name__ == "__main__":
     setup_logging(savedir, kappa)
 
     # define curve on the sphere
-    if not brownian_curve:
+    if not is_brownian_curve:
         knots = np.array(
             [
                 [-0.25882694, 0.95006168, 0.17433133],
@@ -442,7 +442,7 @@ if __name__ == "__main__":
             ]
         )
     else:
-        knots = gs.sphere.constrained_brownian_curve(
+        knots = constrained_brownian_curve(
             n_points=10,
             dimension=3,
             step_size=0.3,

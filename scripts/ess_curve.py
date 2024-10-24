@@ -1,6 +1,6 @@
 # ESS computed for the curve on the sphere by varying the number of dimensions and
 # the concentration parameter kappa.
-
+# %%
 import os
 
 import arviz as az
@@ -168,6 +168,7 @@ def ess_plot_varying_param(
     param_values,
     param_name,
     select_dim_idx: int = 0,
+    y_lim_factor: float = 18.0,
 ) -> plt.Figure:
     """
     Plot ESS values against a varying parameter.
@@ -182,7 +183,8 @@ def ess_plot_varying_param(
         Name of the parameter for labeling.
     select_dim_idx : int
         Index to select the ESS values that are computed for every dimension.
-
+    y_lim_factor : float
+        Factor to multiply the y limit by.
     Returns
     -------
     plt.Figure
@@ -208,9 +210,14 @@ def ess_plot_varying_param(
             color=color_palette[i],
         )
     ax.set_yscale("log")
-    ax.legend()
+
+    # Adjust y limit
+    ymin, ymax = ax.get_ylim()
+    ax.set_ylim(ymin, ymax * y_lim_factor)
+    ax.legend(loc="upper right")
+
     ax.set_xlabel(param_name)
-    ax.set_ylabel("Relative ESS (log)")
+    ax.set_ylabel("relative ESS (log)")
 
     ax.set_xticks(param_values)
     ax.set_xticklabels(param_values)
@@ -262,8 +269,9 @@ if __name__ == "__main__":
         fig = ess_plot_varying_param(
             ess_vals=ess_kappas,
             param_values=kappas,
-            param_name=r"Concentration parameter $\kappa$",
+            param_name=r"concentration parameter $\kappa$",
             select_dim_idx=0,
+            y_lim_factor=28,
         )
         fig.savefig(
             f"{subdir}/ess_curve_10d_varying_kappa.pdf", transparent=True, dpi=150
@@ -306,9 +314,12 @@ if __name__ == "__main__":
         fig = ess_plot_varying_param(
             ess_vals=ess_ndims,
             param_values=ndims,
-            param_name="Dimensions $d$",
+            param_name="dimension $d$",
             select_dim_idx=0,
+            y_lim_factor=13,
         )
         fig.savefig(
             f"{subdir}/ess_curve_kappa_{int(kappa)}_varying_ndim.pdf",
         )
+
+# %%
