@@ -15,6 +15,8 @@ import geosss as gs
 from geosss.distributions import CurvedVonMisesFisher, Distribution
 from geosss.spherical_curve import SlerpCurve
 
+plt.rc("font", size=16)
+
 
 def saff_sphere(N: int = 1000) -> np.ndarray:
     """Uniformly distribute points on the 2-sphere using Saff's algorithm."""
@@ -148,23 +150,172 @@ def launch_samplers(
     return samples, logprob
 
 
-def visualize_curve_3d(
+def calc_kld(pdf, samples, methods, n_saff=1500):
+    """estimating kl divergence for the curve vMF"""
+
+    x = saff_sphere(n_saff)
+    log_p = pdf.log_prob(x)
+    p = np.exp(log_p - logsumexp(log_p))
+    tree = cKDTree(x)
+
+    kld = []
+    for method in methods:
+        d, i = tree.query(samples[method], k=1)
+        j, c = np.unique(i, return_counts=True)
+        q = np.zeros_like(p)
+        q[j] = c = c / c.sum()
+        kld.append(np.sum(p * np.log(p) - p * np.log(q + p.min())))
+        print(method, kld[-1])
+
+    return kld
+
+
+def acf_kld_plot(
+    pdf,
+    samples,
+    methods,
+    algos,
+    acf_lag=250,
+    n_saff=1500,
+    fs=16,
+):
+    """plots ACF for first dimension and KL divergence"""
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # plotting acf for the first dimension
+    for method in methods:
+        ac = gs.acf(samples[method][:, 0], acf_lag)
+        ax1.plot(ac, alpha=0.7, lw=3, label=algos[method])
+    ax1.legend(fontsize=fs)
+    ax1.axhline(0.0, ls="--", color="k", alpha=0.7)
+    ax1.set_xlabel(r"Lag", fontsize=fs)
+    ax1.set_ylabel("ACF", fontsize=fs)
+
+    # calculate kl divergence
+    kld = calc_kld(pdf, samples, methods, n_saff)
+
+    # ax.set_title("KL divergence between target and sampled distribution")
+    ax2.set_ylabel("KL divergence", fontsize=fs)
+    ax2.bar(list(map(algos.get, methods)), kld, color="k", alpha=0.3)
+    plt.xticks(rotation=30)
+    fig.tight_layout()
+
+    return fig
+
+
+def geodesic_distance_plot(samples, methods, algos):
+    """Geodesic distance between successive samples"""
+
+    # geodesic distance
+    fs = 16
+    fig, axes = plt.subplots(
+        1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
+    )
+    bins = 100
+    for ax, method in zip(axes, methods):
+        ax.set_title(algos[method], fontsize=fs)
+        # distance between successive samples
+        x = samples[method]
+        d = gs.distance(x[:-1], x[1:])
+        logging.info(
+            "average great circle distance of successive samples: "
+            f"{np.mean(d):.2f} ({method})"
+        )
+        bins = ax.hist(
+            d, bins=bins, density=True, alpha=0.3, color="k", histtype="stepfilled"
+        )[1]
+        ax.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=fs)
+        ax.set_xticks(np.linspace(0.0, np.pi, 3))
+        ax.set_xticklabels(["0", r"$\pi/2$", r"$\pi$"])
+        ax.semilogy()
+    fig.tight_layout()
+
+    return fig
+
+
+def marginal_distribution_plot(pdf, samples, methods, algos):
+    """marginal distribution plot"""
+
+    x = saff_sphere(100_000)
+    log_p = pdf.log_prob(x)
+    prob_truth = np.exp(log_p - logsumexp(log_p))
+
+    bins = 50
+    fs = 16
+    plt.rc("font", size=fs)
+    fig, rows = plt.subplots(
+        3, len(methods), figsize=(12, 10), sharex=True, sharey=True
+    )
+    for i, axes in enumerate(rows):
+        vals = x[:, i]
+        ref = list(np.histogram(vals, weights=prob_truth, bins=bins, density=True))
+        ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
+        for ax, method in zip(axes, methods):
+            bins = ax.hist(
+                samples[method][burnin:, i],
+                bins=bins,
+                density=True,
+                alpha=0.3,
+                color="k",
+                histtype="stepfilled",
+            )[1]
+            ax.plot(*ref[::-1], color="r", lw=1, ls="--")
+            ax.set_xlabel(rf"$e_{i}^Tx_n$", fontsize=fs)
+    for ax, method in zip(rows[0], methods):
+        ax.set_title(algos[method], fontsize=fs)
+    fig.tight_layout()
+
+    return fig
+
+
+def scatter_curve_3d(
     pdf: Distribution,
     samples: dict,
     METHODS: tuple,
     ALGOS: dict,
-    num_theta=300,
-    num_phi=300,
+    n_saff_samples: int = 30000,
     fontsize=16,
-    elev=62,
-    azim=11,
+    elev=74,
+    azim=-4,
 ):
+    """Visualizing the density and the samples on a 2-sphere
+
+    Parameters
+    ----------
+    pdf : Distribution
+        unnormalized probability density function
+    samples : dict
+        samples corresponding to each method
+    METHODS : tuple
+        MCMC methods used here
+    ALGOS : dict
+        name of the MCMC methods (used for titles)
+    n_saff_samples : int, optional
+        number of samples for uniformly sampling the sphere, by default 30000
+    fontsize : int, optional
+        default font size, by default 16
+    elev : int, optional
+        polar angle for viewing the 3D plot, by default 62
+    azim : int, optional
+        azimuthal angle for viewing the 3D plot, by default 11
+
+    Returns
+    -------
+    Figure
+        returns the 3D plot
+    """
     for method in METHODS:
         assert samples[method].shape[1] == 3, "Visualization accepts only 3D samples."
 
-    # Create a regular grid over θ and φ
+    # true PDF values
+    saff_samples = saff_sphere(n_saff_samples)
+    log_p = pdf.log_prob(saff_samples)
+    prob_truth = np.exp(log_p - logsumexp(log_p))
+
+    # Create a regular grid over theta and phi for the wire-plot
     theta_grid, phi_grid = np.meshgrid(
-        np.linspace(0, np.pi, num_theta), np.linspace(0, 2 * np.pi, num_phi)
+        np.linspace(0, np.pi, 300), np.linspace(0, 2 * np.pi, 300)
     )
 
     # Convert the spherical grid to Cartesian coordinates
@@ -172,17 +323,7 @@ def visualize_curve_3d(
     Y = np.sin(theta_grid) * np.sin(phi_grid)
     Z = np.cos(theta_grid)
 
-    # Flatten the arrays to compute PDF values
-    xyz = np.column_stack((X.ravel(), Y.ravel(), Z.ravel()))
-
-    # true PDF values
-    log_p = pdf.log_prob(xyz)
-    prob_truth = np.exp(log_p - logsumexp(log_p))
-    grid_values = prob_truth.reshape(X.shape)
-
     # Normalize for color mapping
-    pdfnorm = Normalize(vmin=grid_values.min(), vmax=grid_values.max())
-
     fig, axes = plt.subplots(
         1,
         len(METHODS),
@@ -209,22 +350,9 @@ def visualize_curve_3d(
 
     for ax, method in zip(axes.flat, METHODS):
         ax.computed_zorder = False
-
-        ax.plot_wireframe(X, Y, Z, color="lightgrey", alpha=0.05, zorder=3)
-        ax.plot_surface(
-            X,
-            Y,
-            Z,
-            facecolors=plt.cm.terrain_r(pdfnorm(grid_values)),
-            alpha=1,
-            zorder=1,
-            rstride=1,
-            cstride=1,
-            antialiased=False,
-            shade=False,
-            edgecolor="none",
+        ax.scatter(
+            *saff_samples.T, c=prob_truth, s=10, alpha=1.0, cmap="terrain_r", zorder=1
         )
-
         # Select the first 10000 samples
         sample_points = samples[method][:10000]
         dot_products = np.dot(sample_points, view_vector)
@@ -232,7 +360,7 @@ def visualize_curve_3d(
         # Map dot products to alpha values
         # Desired alpha range: 0.0 (fully transparent) to max_alpha (for visible points)
         min_alpha = 0.0  # Minimum alpha for back-facing points
-        max_alpha = 0.1  # Maximum alpha for front-facing points
+        max_alpha = 0.16  # Maximum alpha for front-facing points
 
         # Normalize dot products from [-1, 1] to [min_alpha, max_alpha]
         alpha_values = min_alpha + ((dot_products + 1) / 2) * (max_alpha - min_alpha)
@@ -244,7 +372,8 @@ def visualize_curve_3d(
         colors[:, 3] = alpha_values  # custom alpha values
 
         # scatter points and specify the custom colors
-        ax.scatter(*sample_points.T, c=colors, s=2, zorder=2)
+        ax.scatter(*sample_points.T, c=colors, s=1, zorder=2)
+        ax.plot_wireframe(X, Y, Z, color="lightgrey", alpha=0.05, zorder=3)
 
         ax.set_title(ALGOS[method], pad=-50, fontsize=fontsize)
         ax.set_aspect("auto")
@@ -362,151 +491,82 @@ if __name__ == "__main__":
         rerun_if_file_exists,
     )
 
-    fig = visualize_curve_3d(pdf, samples, methods, algos)
+    fig = scatter_curve_3d(pdf, samples, methods, algos)
     if savefig:
         fig.savefig(
-            f"{savedir}/sph_curve_kappa{int(kappa)}.pdf",
+            f"{savedir}/scattered_3d_curve_kappa{int(kappa)}.png",
             bbox_inches="tight",
             transparent=True,
             dpi=300,
         )
 
-if False:
-    # generate figures
-    fs = 16
-    fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
-    for d, ax in enumerate(axes):
-        ax.set_title(rf"$x_{d+1}$", fontsize=20)
-        for method in methods:
-            ac = gs.acf(samples[method][:, d], 250)
-            ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
-        ax.axhline(0.0, ls="--", color="k", alpha=0.7)
-        ax.set_xlabel(r"lag", fontsize=fs)
-    axes[0].set_ylabel("ACF", fontsize=fs)
-    ax.legend(fontsize=fs)
-    fig.tight_layout()
+    fig2 = acf_kld_plot(pdf, samples, methods, algos, acf_lag=250)
     if savefig:
-        fig.savefig(
-            f"{savedir}/curve_acf_kappa{int(kappa)}.pdf",
+        fig2.savefig(
+            f"{savedir}/curve_acf_kld_kappa{int(kappa)}.pdf",
             bbox_inches="tight",
             transparent=True,
         )
 
-    # geodesic distance
-    fig, axes = plt.subplots(
-        1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
-    )
-    bins = 100
-    for ax, method in zip(axes, methods):
-        ax.set_title(algos[method], fontsize=fs)
-        # distance between successive samples
-        x = samples[method]
-        d = gs.distance(x[:-1], x[1:])
-        logging.info(
-            "average great circle distance of successive samples: "
-            f"{np.mean(d):.2f} ({method})"
-        )
-        bins = ax.hist(
-            d, bins=bins, density=True, alpha=0.3, color="k", histtype="stepfilled"
-        )[1]
-        ax.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=fs)
-        ax.set_xticks(np.linspace(0.0, np.pi, 3))
-        ax.set_xticklabels(["0", r"$\pi/2$", r"$\pi$"])
-        ax.semilogy()
-    fig.tight_layout()
+    fig3 = geodesic_distance_plot(samples, methods, algos)
     if savefig:
-        fig.savefig(
+        fig3.savefig(
             f"{savedir}/curve_dist_kappa{int(kappa)}.pdf",
             bbox_inches="tight",
             transparent=True,
         )
 
-    fig, axes = plt.subplots(3, 4, figsize=(12, 9), sharex=True, sharey=True)
-    for ax, method in zip(axes[0], methods):
-        ax.set_title(algos[method], fontsize=fs)
-    for d in range(3):
-        for ax, method in zip(axes[d], methods):
-            ac = gs.acf(samples[method][:, d], 1000)
-            ax.plot(ac, alpha=0.7, color="k", lw=3)
-            ax.axhline(0.0, ls="--", color="r", alpha=0.7)
-    for ax in axes[-1]:
-        ax.set_xlabel(r"Lag", fontsize=fs)
-    for d, ax in enumerate(axes[:, 0], 1):
-        ax.set_ylabel(rf"ACF $x_{d}$", fontsize=fs)
-    ax.set_xlim(-5, 250)
-    fig.tight_layout()
-
-    fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
-    for ax, method in zip(axes, methods):
-        ac = gs.acf(logprob[method], 1000)
-        ax.plot(ac, color="k", alpha=1.0, lw=3)
-    ax.set_xlim(-5, 200)
-    fig.tight_layout()
-
-    # compare histograms
-
-    x = saff_sphere(1500)
-    log_p = pdf.log_prob(x)
-    prob_truth = np.exp(log_p - logsumexp(log_p))
-
-    tree = cKDTree(x)
-
-    kl_methods = []
-    for method in methods:
-        d, i = tree.query(samples[method], k=1)
-        j, c = np.unique(i, return_counts=True)
-        q = np.zeros_like(prob_truth)
-        q[j] = c = c / c.sum()
-        kl = np.sum(
-            prob_truth * np.log(prob_truth) - prob_truth * np.log(q + prob_truth.min())
-        )
-        kl_methods.append(kl)
-        logging.info(f"KL divergence between target and {method}: {kl_methods[-1]}")
-
-    fig, axes = plt.subplots(1, 1, figsize=(6, 4))
-    ax = axes
-    # ax.set_title("KL divergence between target and sampled distribution")
-    ax.set_ylabel("KL divergence")
-    ax.bar(list(map(algos.get, methods)), kl_methods, color="k", alpha=0.3)
-    plt.xticks(rotation=30)
-    fig.tight_layout()
+    fig4 = marginal_distribution_plot(pdf, samples, methods, algos)
     if savefig:
-        fig.savefig(
-            f"{savedir}/curve_kl_kappa{int(kappa)}.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
-
-    x = saff_sphere(100_000)
-    log_p = pdf.log_prob(x)
-    prob_truth = np.exp(log_p - logsumexp(log_p))
-
-    bins = 50
-    plt.rc("font", size=fs)
-    fig, rows = plt.subplots(
-        3, len(methods), figsize=(12, 10), sharex=True, sharey=True
-    )
-    for i, axes in enumerate(rows):
-        vals = x[:, i]
-        ref = list(np.histogram(vals, weights=prob_truth, bins=bins, density=True))
-        ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
-        for ax, method in zip(axes, methods):
-            bins = ax.hist(
-                samples[method][burnin:, i],
-                bins=bins,
-                density=True,
-                alpha=0.3,
-                color="k",
-                histtype="stepfilled",
-            )[1]
-            ax.plot(*ref[::-1], color="r", lw=1, ls="--")
-            ax.set_xlabel(rf"$e_{i}^Tx_n$", fontsize=fs)
-    for ax, method in zip(rows[0], methods):
-        ax.set_title(algos[method], fontsize=fs)
-    fig.tight_layout()
-    if savefig:
-        fig.savefig(
+        fig4.savefig(
             f"{savedir}/curve_hist_kappa{int(kappa)}.pdf",
             bbox_inches="tight",
             transparent=True,
         )
+
+    # some misc plots (either redundant or not used in paper)
+    misc_plots = False
+
+    if misc_plots:
+        # generate figures
+        fs = 16
+        fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
+        for d, ax in enumerate(axes):
+            ax.set_title(rf"$x_{d+1}$", fontsize=20)
+            for method in methods:
+                ac = gs.acf(samples[method][:, d], 250)
+                ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
+            ax.axhline(0.0, ls="--", color="k", alpha=0.7)
+            ax.set_xlabel(r"Lag", fontsize=fs)
+        axes[0].set_ylabel("ACF", fontsize=fs)
+        ax.legend(fontsize=fs)
+        fig.tight_layout()
+
+        # compare histograms
+
+        x = saff_sphere(1500)
+        log_p = pdf.log_prob(x)
+        prob_truth = np.exp(log_p - logsumexp(log_p))
+
+        tree = cKDTree(x)
+
+        kl_methods = []
+        for method in methods:
+            d, i = tree.query(samples[method], k=1)
+            j, c = np.unique(i, return_counts=True)
+            q = np.zeros_like(prob_truth)
+            q[j] = c = c / c.sum()
+            kl = np.sum(
+                prob_truth * np.log(prob_truth)
+                - prob_truth * np.log(q + prob_truth.min())
+            )
+            kl_methods.append(kl)
+            logging.info(f"KL divergence between target and {method}: {kl_methods[-1]}")
+
+        fig, axes = plt.subplots(1, 1, figsize=(6, 4))
+        ax = axes
+        # ax.set_title("KL divergence between target and sampled distribution")
+        ax.set_ylabel("KL divergence")
+        ax.bar(list(map(algos.get, methods)), kl_methods, color="k", alpha=0.3)
+        plt.xticks(rotation=30)
+        fig.tight_layout()
