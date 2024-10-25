@@ -234,7 +234,7 @@ def acf_geodist_plot(
     methods,
     algos,
     savedir,
-    filename="curve_acf_distplot.pdf",
+    filename="curve_acf_distplot",
     savefig=True,
 ):
 
@@ -343,7 +343,7 @@ def acf_geodist_plot(
         savedir_acf_dist = f"{savedir}/dist_acf_plots"
         os.makedirs(savedir_acf_dist, exist_ok=True)
         fig.savefig(
-            f"{savedir_acf_dist}/{filename}",
+            f"{savedir_acf_dist}/{filename}.pdf",
             bbox_inches="tight",
             transparent=True,
             dpi=150,

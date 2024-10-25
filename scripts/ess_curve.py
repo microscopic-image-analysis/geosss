@@ -229,15 +229,15 @@ def ess_plot_varying_param(
 if __name__ == "__main__":
 
     plotting_varying_kappa = True
-    plotting_varying_ndim = True
+    plotting_varying_ndim = False
 
     if plotting_varying_kappa:
         # parameters for loading samples and calculating ESS
         kappas = np.arange(100, 900, 100)
-        n_dim = 10
+        n_dim = 5
         n_runs = 10
         subdir = f"results/curve_{n_dim}d_vary_kappa_nruns_{n_runs}"
-        ess_filename = "ess_curve_10d_varying_kappa.pkl"
+        ess_filename = f"ess_curve_{n_dim}d_varying_kappa.pkl"
         ess_filepath = os.path.join(subdir, ess_filename)
         recompute_ess = False
 
@@ -321,5 +321,3 @@ if __name__ == "__main__":
         fig.savefig(
             f"{subdir}/ess_curve_kappa_{int(kappa)}_varying_ndim.pdf",
         )
-
-# %%
