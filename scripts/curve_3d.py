@@ -2,10 +2,13 @@
 import argparse
 import logging
 import os
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import scipy.optimize as opt
+import seaborn as sns
 from csb.io import dump, load
 from matplotlib.colors import Normalize
 from scipy.spatial import cKDTree
@@ -232,6 +235,139 @@ def geodesic_distance_plot(samples, methods, algos):
     fig.tight_layout()
 
     return fig
+
+
+def acf_geodist_kld_plot(
+    samples,
+    methods,
+    algos,
+    savedir,
+    filename="curve_acf_distplot",
+    savefig=True,
+    acf_lag=1000,
+    n_saff=1500,
+):
+
+    # Suppress FutureWarnings (optional)
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    # Define your methods and corresponding colors
+    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
+    method_color_dict = dict(zip(methods, colors))
+
+    # Font size for labels and titles
+    fs = 16
+
+    # Create the figure with two subplots side by side
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+    ### First Subplot: Autocorrelation Function ###
+    ax1 = axes[0]
+
+    for method, color in zip(methods, colors):
+        ac = gs.acf(samples[method][:, 0], acf_lag)
+        ax1.plot(ac, alpha=0.7, lw=3, label=algos[method], color=color)
+
+    ax1.axhline(0.0, ls="--", color="k", alpha=0.7)
+    ax1.set_xlabel(r"Lag", fontsize=fs)
+    ax1.set_ylabel("ACF", fontsize=fs)
+    ax1.tick_params(axis="both", which="major", labelsize=fs)
+    ax1.legend(fontsize=fs, loc="upper right")
+
+    ax2 = axes[1]
+
+    # calculate kl divergence
+    kld = calc_kld(pdf, samples, methods, n_saff)
+
+    # ax.set_title("KL divergence between target and sampled distribution")
+    ax2.set_ylabel("KL divergence", fontsize=fs)
+    ax2.bar(list(map(algos.get, methods)), kld, color="k", alpha=0.3)
+    ax2.tick_params(axis="x", labelrotation=30)
+    ax2.tick_params(axis="both", labelsize=fs)
+    fig.tight_layout()
+
+    ## Third Subplot: Geodesic Distance Histogram ###
+    ax3 = axes[2]
+
+    # Prepare the data for the histogram
+    geo_dist_list = []
+    for method in methods:
+        x = samples[method]
+        # Compute geodesic distances between successive samples
+        geo_dist = gs.sphere.distance(x[:-1], x[1:])
+        # Check for Inf or NaN values
+        if not np.all(np.isfinite(geo_dist)):
+            logging.warning(
+                f"Infinite or NaN values found in geo_dist for method {method}"
+            )
+            # Remove or handle these values
+            geo_dist = geo_dist[np.isfinite(geo_dist)]
+        logging.info(
+            "average great circle distance of successive samples: "
+            f"{np.mean(geo_dist):.2f} ({method})"
+        )
+        # Create a DataFrame for the current method
+        df_method = pd.DataFrame({"geo_dist": geo_dist, "method": method})
+        geo_dist_list.append(df_method)
+
+    # Combine all DataFrames into one
+    df_geo_dist = pd.concat(geo_dist_list, ignore_index=True)
+
+    # Set the style
+    sns.set_style("white")  # Remove the background grid
+
+    # Create the histogram plot using Seaborn
+    sns.histplot(
+        data=df_geo_dist,
+        x="geo_dist",
+        hue="method",
+        bins=400,
+        stat="density",
+        element="step",  # Use 'bars' for filled histograms
+        fill=True,  # Set to True for filled histograms
+        common_norm=False,  # Normalize each histogram independently
+        linewidth=1.5,  # Adjust line width for better visibility
+        alpha=0.3,
+        ax=ax3,
+        palette=method_color_dict,
+        legend=True,  # Ensure legend is enabled
+    )
+
+    # Customize the x-axis labels and ticks
+    ax3.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=20)
+    ax3.set_xticks([0, np.pi / 2, np.pi])
+    ax3.set_xticklabels(["0", r"$\pi/2$", r"$\pi$"], fontsize=20)
+    ax3.tick_params(axis="both", which="major", labelsize=fs)
+
+    # Set y-scale to logarithmic
+    ax3.set_yscale("log")
+    ax3.set_ylabel(None)  # Remove the y-axis label
+    ax3.set_xlim(0, np.pi)
+
+    # Customize the legend
+    leg = ax3.get_legend()
+    if leg is not None:
+        leg.set_title(None)  # Remove the legend title
+        for t in leg.texts:
+            t.set_fontsize(fs)
+        # Optionally, adjust the legend location
+        leg.set_bbox_to_anchor((1, 1))
+    else:
+        logging.warning("Legend not found in ax2.")
+
+    # Adjust layout
+    fig.tight_layout()
+
+    if savefig:
+        logging.info(
+            f"Saving ACF, KL divergence and geodesic distance plot to {savedir}/{filename}.pdf"
+        )
+        fig.savefig(
+            f"{savedir}/{filename}.pdf",
+            bbox_inches="tight",
+            transparent=True,
+            dpi=150,
+        )
 
 
 def marginal_distribution_plot(pdf, samples, methods, algos):
@@ -523,6 +659,16 @@ if __name__ == "__main__":
             bbox_inches="tight",
             transparent=True,
         )
+
+    fig5 = acf_geodist_kld_plot(
+        samples,
+        methods,
+        algos,
+        savedir,
+        f"curve_acf_kld_geodist_3d_kappa{int(kappa)}",
+        savefig=savefig,
+        acf_lag=250,
+    )
 
     # some misc plots (either redundant or not used in paper)
     misc_plots = False
