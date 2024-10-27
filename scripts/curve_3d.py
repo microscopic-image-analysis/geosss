@@ -261,7 +261,7 @@ def acf_geodist_kld_plot(
     # Create the figure with two subplots side by side
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-    ### First Subplot: Autocorrelation Function ###
+    # first subplot : ACF
     ax1 = axes[0]
 
     for method, color in zip(methods, colors):
@@ -274,6 +274,7 @@ def acf_geodist_kld_plot(
     ax1.tick_params(axis="both", which="major", labelsize=fs)
     ax1.legend(fontsize=fs, loc="upper right")
 
+    # Second Subplot: KL divergence
     ax2 = axes[1]
 
     # calculate kl divergence
@@ -286,7 +287,7 @@ def acf_geodist_kld_plot(
     ax2.tick_params(axis="both", labelsize=fs)
     fig.tight_layout()
 
-    ## Third Subplot: Geodesic Distance Histogram ###
+    # Third Subplot: Geodesic distance
     ax3 = axes[2]
 
     # Prepare the data for the histogram
