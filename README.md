@@ -97,7 +97,7 @@ As the package is created with the Python package manager [Poetry](https://pytho
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
-poetry install --all-extras
+poetry install --all-extras --sync
 ```
 
 This installs the package with pinned dependencies, as specified in `poetry.lock`, ensuring a consistent environment. Activate the environment with `poetry shell`.
