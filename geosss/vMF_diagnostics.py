@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from csb.io import dump, load
 
+from geosss.distributions import MarginalVonMisesFisher, MixtureModel, VonMisesFisher
 from geosss.sphere import distance
 from geosss.utils import acf
 
@@ -62,10 +63,65 @@ def hist_plot(samples, ndim, path, filename, fs=16, save_res=False):
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving sampler marginals plot..")
+        print(f"Saving histogram plot..")
         fig.savefig(f"{path}/{filename}_hist.pdf", transparent=True)
 
     plt.close(fig)
+
+
+def hist_plot_mixture_marginals(
+    pdf, samples, ndim, path, filename, fs=16, save_res=False
+):
+    """
+    histogram of samples.
+    """
+    bins = 100
+    plt.rc("font", size=fs)
+
+    # shows a standard histogram per dimension
+    if ndim == 3:
+        figsize = (10, 10)
+    else:
+        figsize = (10, 15)
+    fig, rows = plt.subplots(ndim, len(METHODS), figsize=figsize, sharex=True)
+
+    if isinstance(pdf, MixtureModel):
+        mus = np.array([pdf.pdfs[i].mu for i in range(len(pdf.pdfs))])
+    elif isinstance(pdf, VonMisesFisher):
+        mus = pdf.mu
+
+    # reference samples
+    t = np.linspace(-1.0, 1.0, 1000)
+
+    for d_idx, axes in enumerate(rows):
+
+        # mixture of the marginals of von Mises-Fisher as ground truth samples
+        marginalvMFs = [MarginalVonMisesFisher(d_idx, mu) for mu in mus]
+        mixture_marginalvMFs = MixtureModel(marginalvMFs)
+        log_p = mixture_marginalvMFs.log_prob(t)
+        prob_truth = np.exp(log_p)
+
+        # show histogram
+        for ax, method in zip(axes, METHODS):
+            marginals = samples[method][:, d_idx]
+            bins = ax.hist(
+                marginals,
+                bins=bins,
+                density=True,
+                alpha=0.3,
+                color="k",
+                histtype="stepfilled",
+            )[1]
+            ax.plot(t, prob_truth, ls="--", c="r", lw=1)
+            ax.set_xlabel(rf"$e_{d_idx}^Tx_n$", fontsize=fs)
+
+    for ax, method in zip(rows[0], METHODS):
+        ax.set_title(ALGOS[method], fontsize=fs)
+    fig.tight_layout()
+
+    if save_res:
+        print(f"Saving histogram plot with mixture marginals..")
+        fig.savefig(f"{path}/{filename}_hist_marginals.pdf", transparent=True)
 
 
 def trace_plots(samples, ndim, path, filename, fs=16, save_res=False):

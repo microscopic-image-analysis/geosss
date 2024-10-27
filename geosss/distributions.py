@@ -165,14 +165,14 @@ class VonMisesFisher(Distribution):
 class MarginalVonMisesFisher(VonMisesFisher):
     """Computing marginals of the von Mises-Fisher distribution"""
 
-    def __init__(self, index, mu):
+    def __init__(self, dim_idx, mu):
         super().__init__(mu)
-        self.index = index
+        self.dim_idx = dim_idx
 
     def prob(self, x):
         d = len(self.mu)
         kappa = np.linalg.norm(self.mu)
-        mu = self.mu[self.index] / kappa
+        mu = self.mu[self.dim_idx] / kappa
         prob = (
             np.sqrt(kappa / (2 * np.pi))
             / iv(d / 2 - 1, kappa)
