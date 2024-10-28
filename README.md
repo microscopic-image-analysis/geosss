@@ -90,27 +90,26 @@ gs.compare_samplers_3d(pdf, samples)
 
 It is preferable to install the package in the development mode for modifications. Additionally, this will also ensure reproducibility of the results from the numerical illustrations section of the [paper](https://doi.org/10.48550/arXiv.2301.08056).
 
-### Using Poetry
-
-As the package is created with the Python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is preferable to use it for development. After installing Poetry, clone the repository and run the following commands in the repository's root directory:
+Clone the repository and navigate to the root of the folder,
 
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
-poetry install --all-extras --sync
 ```
 
-This installs the package with pinned dependencies, as specified in `poetry.lock`, ensuring a consistent environment. Activate the environment with `poetry shell`.
-
-
-### Using pip
-
-Alternatively, you can use `pip` to install from the `requirements.txt` file, which mirrors the pinned dependencies in `poetry.lock`. Assuming the repository is cloned and you are at the root directory, create a virtual environment (showed here with [venv](https://docs.python.org/3/library/venv.html)) and install the depedencies,
+You can now create a virtual environment (with `conda` for example) and install all the dependencies,
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+conda create --name geosss-venv python=3.11 # or python >= 3.10, < 3.13
+conda activate geosss-venv
 pip install -r requirements.txt
+```
+
+Alternatively, because the `pyproject.toml` file is based on the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is possible to install with `poetry` in the activated environment.
+
+```bash
+poetry install --all-extras --sync
+poetry shell
 ```
 
 For reproducing the results in the paper, please run the files from the [scripts](scripts/) directory, specifically `bingham.py`, `mixture_vMF.py`, `ess_vMF.py`, `vMF_curve_3d.py` and `vmF_curve_Nd.py`. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
