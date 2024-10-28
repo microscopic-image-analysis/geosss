@@ -147,7 +147,7 @@ def scatter_matrix(n_dim, samples, methods, algos, savedir, filename, savefig=Fa
     legend_size = 24  # Size for legend
 
     # create dir to save scatter matrices
-    labels = [rf"$\mathbb{{S}}_{{{i}}}$" for i in range(n_dim)]
+    labels = [rf"$x_{i}$" for i in range(n_dim)]
 
     # Set default font sizes for matplotlib
     plt.rcParams.update(
