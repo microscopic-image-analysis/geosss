@@ -98,22 +98,25 @@ git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
 ```
 
-You can now create a virtual environment (with `conda` for example) and install all the dependencies,
+You can now create a virtual environment (with `conda` for example), and install all the dependencies,
 
 ```bash
 conda create --name geosss-venv python=3.11 # or python >= 3.10, < 3.13
 conda activate geosss-venv
+```
+
+The dependencies can be installed in the environment with `pip` as,
+```bash
 pip install -r requirements.txt
 ```
 
-Alternatively, because the `pyproject.toml` file is based on the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is possible to install with `poetry` in the activated environment.
+Alternatively, because the `pyproject.toml` file is based on the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is possible to install with `poetry` in the activated `conda` environment.
 
 ```bash
 poetry install --all-extras --sync
-poetry shell
 ```
 
-For reproducing the results in the paper, please run the files from the [scripts](scripts/) directory, specifically `bingham.py`, `mixture_vMF.py`, `ess_vMF.py`, `vMF_curve_3d.py` and `vmF_curve_Nd.py`. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
+For reproducing the results in the paper, please check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
 
 ## Citation
 
