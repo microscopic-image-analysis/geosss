@@ -98,14 +98,14 @@ git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
 ```
 
-You can now create a virtual environment (with `conda` for example), and install all the dependencies,
+You can now create a virtual environment (with `conda` for example),
 
 ```bash
 conda create --name geosss-venv python=3.11 # or python >= 3.10, < 3.13
 conda activate geosss-venv
 ```
 
-The dependencies can be installed in the environment with `pip` as,
+The dependencies can be installed in this environment with `pip` as,
 ```bash
 pip install -r requirements.txt
 ```
