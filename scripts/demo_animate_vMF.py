@@ -28,9 +28,9 @@ def show_sphere(pdf: gs.Distribution, n_grid: int = 1000):
     pdfnorm = Normalize(vmin=pdf_vals.min(), vmax=pdf_vals.max())
 
     fig, axes = plt.subplots(
-        2,
-        2,
-        figsize=(10, 10),
+        1,
+        len(methods),
+        figsize=(16, 6),
         subplot_kw={"projection": "3d"},
         sharex=True,
         sharey=True,
@@ -54,9 +54,7 @@ def show_sphere(pdf: gs.Distribution, n_grid: int = 1000):
         ax.axis("off")
 
     # Adjust layout to reduce gaps
-    plt.subplots_adjust(
-        wspace=-0.1,
-    )
+    plt.subplots_adjust(wspace=-0.1, hspace=-0.2)
 
     return fig, axes
 
