@@ -801,6 +801,17 @@ qa = ["flake8 (==5.0.4)", "mypy (==0.971)", "types-setuptools (==67.2.0.1)"]
 testing = ["Django", "attrs", "colorama", "docopt", "pytest (<7.0.0)"]
 
 [[package]]
+name = "joblib"
+version = "1.4.2"
+description = "Lightweight pipelining with Python functions"
+optional = true
+python-versions = ">=3.8"
+files = [
+    {file = "joblib-1.4.2-py3-none-any.whl", hash = "sha256:06d478d5674cbc267e7496a410ee875abd68e4340feff4490bcb7afb88060ae6"},
+    {file = "joblib-1.4.2.tar.gz", hash = "sha256:2382c5816b2636fbd20a09e0f4e9dad4736765fdfb7dca582943b9c1366b3f0e"},
+]
+
+[[package]]
 name = "jupyter-client"
 version = "8.6.3"
 description = "Jupyter protocol implementation and client libraries"
@@ -1957,9 +1968,9 @@ requests = "*"
 wget = "*"
 
 [extras]
-dev = ["black", "corner", "ipykernel", "seaborn", "zenodo-get"]
+dev = ["black", "corner", "ipykernel", "joblib", "seaborn", "zenodo-get"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10, <3.13"
-content-hash = "8c4da096e1d896cbc23bacb10c047317cb176ddd4acb4532cd7aaf117f72a26f"
+content-hash = "0ce4dcfebc570da20afc0d4bed1252343f438707b19a2f7bceb3274201b1573e"
