@@ -67,7 +67,7 @@ def hist_plot(samples, ndim, path, filename, fs=16, save_res=False):
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving histogram plot..")
+        print("Saving histogram plot..")
         fig.savefig(f"{path}/{filename}_hist.pdf", transparent=True)
 
     plt.close(fig)
@@ -124,7 +124,7 @@ def hist_plot_mixture_marginals(
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving histogram plot with mixture marginals..")
+        print("Saving histogram plot with mixture marginals..")
         fig.savefig(f"{path}/{filename}_hist_marginals.pdf", transparent=True)
 
 
@@ -220,7 +220,7 @@ def acf_entropy_plot(samples, pdf, path, filename, lag=1000, fs=16, save_res=Fal
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving ACF-Entropy plot..")
+        print("Saving ACF-Entropy plot..")
         fig.savefig(f"{path}/{filename}_acf_entropy.pdf", transparent=True)
 
     plt.close(fig)
@@ -253,7 +253,7 @@ def entropy_kld(samples, pdf, path, filename, save_res=False):
     plt.xticks(rotation=30)
     fig.tight_layout()
     if save_res:
-        print(f"Saving KL divergence plot..")
+        print("Saving KL divergence plot..")
         fig.savefig(f"{path}/{filename}_kl.pdf", bbox_inches="tight", transparent=True)
 
     fig, axes = plt.subplots(1, 1, figsize=(6, 4))
@@ -263,7 +263,7 @@ def entropy_kld(samples, pdf, path, filename, save_res=False):
     plt.xticks(rotation=30)
     fig.tight_layout()
     if save_res:
-        print(f"Saving entropy plot..")
+        print("Saving entropy plot..")
         fig.savefig(
             f"{path}/{filename}_entropy.pdf", bbox_inches="tight", transparent=True
         )
@@ -307,7 +307,7 @@ def dist_plot(samples, pdf, kappa, path, filename, fs=16, save_res=False):
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving geodesic distance plot..")
+        print("Saving geodesic distance plot..")
         fig.savefig(f"{path}/{filename}_dist.pdf", transparent=True)
 
     plt.close(fig)
@@ -423,7 +423,7 @@ def acf_kld_dist_plot(samples, pdf, path, filename, lag=80000, fs=16, save_res=F
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving ACF-KLD-geodesic distance plot..")
+        print("Saving ACF-KLD-geodesic distance plot..")
         fig.savefig(f"{path}/{filename}_acf_kld_dist.pdf", transparent=True)
 
 
@@ -444,7 +444,7 @@ def calc_ess(runs_samples, methods, path, return_ess=True):
         # calculate ess when `n_runs=10`
         if isinstance(runs_samples, list):
             if len(runs_samples) == 10:
-                print(f"Calculating ESS from samples..")
+                print("Calculating ESS from samples..")
                 ess = {method: None for method in methods}
 
                 for method in methods:
@@ -460,7 +460,7 @@ def calc_ess(runs_samples, methods, path, return_ess=True):
                 dump(ess, ess_file, gzip=True)
 
             else:
-                print(f"ESS values not computed, requires `n_runs=10`")
+                print("ESS values not computed, requires `n_runs=10`")
                 return None
 
     for method in methods:

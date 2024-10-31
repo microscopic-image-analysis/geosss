@@ -340,12 +340,7 @@ def main():
     pdf = CurvedVonMisesFisher(curve, kappa)
 
     methods = ("sss-reject", "sss-shrink", "rwmh", "hmc")
-    algos = {
-        "sss-reject": "geoSSS (reject)",
-        "sss-shrink": "geoSSS (shrink)",
-        "rwmh": "RWMH",
-        "hmc": "HMC",
-    }
+    
     savepath_samples_base = f"{savedir}/curve_samples_{n_dim}d_kappa_{float(kappa)}"
     savepath_logprob_base = f"{savedir}/curve_logprob_{n_dim}d_kappa_{float(kappa)}"
 

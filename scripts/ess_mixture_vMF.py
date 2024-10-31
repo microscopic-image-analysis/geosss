@@ -195,7 +195,7 @@ def extract_evals(d, K, kappas, path) -> dict:
                         evals_kappa[method]["reject"].append(reject_num)
 
                 # gradient evals for hmc
-                match_grad = re.search(rf"gradient calls for hmc: (\d+)", line)
+                match_grad = re.search(r"gradient calls for hmc: (\d+)", line)
                 if match_grad:
                     grad_num = int(match_grad.group(1))
                     evals_kappa["hmc"]["grad"].append(grad_num)

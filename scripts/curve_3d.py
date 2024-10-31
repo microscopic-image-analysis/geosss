@@ -10,7 +10,6 @@ import pandas as pd
 import scipy.optimize as opt
 import seaborn as sns
 from csb.io import dump, load
-from matplotlib.colors import Normalize
 from scipy.spatial import cKDTree
 from scipy.special import logsumexp
 

@@ -13,7 +13,7 @@ from csb.io import dump, load
 
 import geosss as gs
 from geosss.distributions import CurvedVonMisesFisher, Distribution
-from geosss.spherical_curve import SlerpCurve, SphericalCurve, brownian_curve
+from geosss.spherical_curve import SlerpCurve, brownian_curve
 
 mpl.rcParams["mathtext.fontset"] = "cm"  # Use Computer Modern font
 

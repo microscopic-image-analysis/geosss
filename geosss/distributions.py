@@ -6,7 +6,6 @@ import functools
 from abc import ABC, abstractmethod
 
 import numpy as np
-from scipy.integrate import quad
 from scipy.special import i0, iv, ive, logsumexp
 
 from geosss import sphere

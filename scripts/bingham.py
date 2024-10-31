@@ -42,7 +42,7 @@ def bingham_ess(runs_samples, pdf, methods, path, return_ess=True):
         # calculate ess when `n_runs=10`
         if isinstance(runs_samples, list):
             if len(runs_samples) == 10:
-                print(f"Calculating ESS from samples..")
+                print("Calculating ESS from samples..")
                 ess = {method: None for method in methods}
 
                 for method in methods:
@@ -60,7 +60,7 @@ def bingham_ess(runs_samples, pdf, methods, path, return_ess=True):
                 dump(ess, ess_file, gzip=True)
 
             else:
-                print(f"ESS values not computed, requires `n_runs=10`")
+                print("ESS values not computed, requires `n_runs=10`")
                 return None
 
     for method in methods:
@@ -79,7 +79,7 @@ def launch_samplers(
         print(f"Loading file {savedir}/bingham_d{d}_vmax{int(vmax)}.pkl")
 
     # run samplers
-    except:
+    except FileNotFoundError:
         print("File not found, starting samplers..")
 
         # generate fixed seeds based on `n_runs`
