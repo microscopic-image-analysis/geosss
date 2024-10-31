@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "geosss"
-version = "0.1.9"
+version = "0.2.1"
 description = "Python package implementing an ideal and shrinkage-based geodesic slice sampling on the sphere."
 authors = ["Michael Habeck <michael.habeck@uni-jena.de>",
            "Shantanu Kodgirwar <shantanu.kodgirwar@uni-jena.de>", 
@@ -11,20 +11,22 @@ readme = "README.md"
 repository = "https://github.com/microscopic-image-analysis/geosss"
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.13"
+python = ">=3.10, <3.13"
 scipy = "^1.11.1"
 numpy = "^1.25.1"
 matplotlib = "^3.7.2"
 csb = "^1.2.5"
-arviz = "^0.15.1"
+arviz = "^0.20.0"
+tsp-solver = { version = "^0.1"}
 seaborn = { version = "^0.12.2", optional = true }
-tsp-solver = { version = "^0.1", optional = true }
 black = { version = "^24.3.0", optional = true }
 ipykernel = { version = "^6.25.0", optional = true }
+zenodo-get = { version = "^1.6.1", optional = true }
+corner = {version = "^2.2.2", optional = true }
+joblib = {version = "^1.4.2", optional = true }
 
 [tool.poetry.extras]
-extras = ["seaborn", "tsp-solver"]
-dev = ["seaborn", "tsp-solver", "black", "ipykernel"]
+dev = ["seaborn", "black", "ipykernel", "zenodo-get", "corner", "joblib"]
 
 [build-system]
 requires = ["poetry-core"]

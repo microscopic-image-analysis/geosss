@@ -6,11 +6,12 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# lock file
-*.lock
-
 # large files
-results/*
+results*
+
+# hpc jobs
+sh/
+job_logs/
 
 # jupyter notebook
 .ipynb_checkpoints

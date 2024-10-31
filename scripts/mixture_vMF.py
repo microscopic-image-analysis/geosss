@@ -235,24 +235,33 @@ def cli_args(d, K, kappa, n_samples, n_runs):
 
 
 def visualize_samples(
-    samples, kappa, pdf, path, filename, save_res=True, misc_plots=False, acf_lag=30000
+    samples, kappa, pdf, path, filename, save_res=True, misc_plots=False, acf_lag=80000
 ):
     """Just a util routine that calls all visualizing functions"""
 
     # modes of a mixture model
     ndim = pdf.pdfs[0].d
 
-    # ACF and entropy plots
-    vis.acf_entropy_plot(samples, pdf, path, filename, lag=acf_lag, save_res=save_res)
+    vis.acf_kld_dist_plot(
+        samples, pdf, path, filename, lag=acf_lag, fs=16, save_res=save_res
+    )
 
-    # plot histogram
-    vis.hist_plot(samples, ndim, path, filename, save_res=save_res)
-
-    # geodesic distance
-    vis.dist_plot(samples, pdf, kappa, path, filename, save_res=save_res)
+    # plot histogram with mixture of true vMF marginal
+    vis.hist_plot_mixture_marginals(
+        pdf, samples, ndim, path, filename, save_res=save_res
+    )
 
     # additional-plots (not used in paper)
     if misc_plots:
+
+        # geodesic distance
+        vis.dist_plot(samples, pdf, kappa, path, filename, save_res=save_res)
+
+        # ACF and entropy plots
+        vis.acf_entropy_plot(
+            samples, pdf, path, filename, lag=acf_lag, save_res=save_res
+        )
+
         # entropy and kl-divergence plots
         vis.entropy_kld(samples, pdf, path, filename, save_res=save_res)
 

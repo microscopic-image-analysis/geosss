@@ -1,13 +1,18 @@
 # diagnostics and plots for mixture of vMF as target (although mostly for general targets,
 # but need to check that)
 
+import logging
 import os
+import warnings
 
 import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import seaborn as sns
 from csb.io import dump, load
 
+from geosss.distributions import MarginalVonMisesFisher, MixtureModel, VonMisesFisher
 from geosss.sphere import distance
 from geosss.utils import acf
 
@@ -62,10 +67,65 @@ def hist_plot(samples, ndim, path, filename, fs=16, save_res=False):
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving sampler marginals plot..")
+        print("Saving histogram plot..")
         fig.savefig(f"{path}/{filename}_hist.pdf", transparent=True)
 
     plt.close(fig)
+
+
+def hist_plot_mixture_marginals(
+    pdf, samples, ndim, path, filename, fs=16, save_res=False
+):
+    """
+    histogram of samples.
+    """
+    bins = 100
+    plt.rc("font", size=fs)
+
+    # shows a standard histogram per dimension
+    if ndim == 3:
+        figsize = (10, 10)
+    else:
+        figsize = (10, 15)
+    fig, rows = plt.subplots(ndim, len(METHODS), figsize=figsize, sharex=True)
+
+    if isinstance(pdf, MixtureModel):
+        mus = np.array([pdf.pdfs[i].mu for i in range(len(pdf.pdfs))])
+    elif isinstance(pdf, VonMisesFisher):
+        mus = pdf.mu
+
+    # reference samples
+    t = np.linspace(-1.0, 1.0, 1000)
+
+    for d_idx, axes in enumerate(rows):
+
+        # mixture of the marginals of von Mises-Fisher as ground truth samples
+        marginalvMFs = [MarginalVonMisesFisher(d_idx, mu) for mu in mus]
+        mixture_marginalvMFs = MixtureModel(marginalvMFs)
+        log_p = mixture_marginalvMFs.log_prob(t)
+        prob_truth = np.exp(log_p)
+
+        # show histogram
+        for ax, method in zip(axes, METHODS):
+            marginals = samples[method][:, d_idx]
+            bins = ax.hist(
+                marginals,
+                bins=bins,
+                density=True,
+                alpha=0.3,
+                color="k",
+                histtype="stepfilled",
+            )[1]
+            ax.plot(t, prob_truth, ls="--", c="r", lw=1)
+            ax.set_xlabel(rf"$e_{d_idx}^Tx_n$", fontsize=fs)
+
+    for ax, method in zip(rows[0], METHODS):
+        ax.set_title(ALGOS[method], fontsize=fs)
+    fig.tight_layout()
+
+    if save_res:
+        print("Saving histogram plot with mixture marginals..")
+        fig.savefig(f"{path}/{filename}_hist_marginals.pdf", transparent=True)
 
 
 def trace_plots(samples, ndim, path, filename, fs=16, save_res=False):
@@ -160,7 +220,7 @@ def acf_entropy_plot(samples, pdf, path, filename, lag=1000, fs=16, save_res=Fal
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving ACF-Entropy plot..")
+        print("Saving ACF-Entropy plot..")
         fig.savefig(f"{path}/{filename}_acf_entropy.pdf", transparent=True)
 
     plt.close(fig)
@@ -193,7 +253,7 @@ def entropy_kld(samples, pdf, path, filename, save_res=False):
     plt.xticks(rotation=30)
     fig.tight_layout()
     if save_res:
-        print(f"Saving KL divergence plot..")
+        print("Saving KL divergence plot..")
         fig.savefig(f"{path}/{filename}_kl.pdf", bbox_inches="tight", transparent=True)
 
     fig, axes = plt.subplots(1, 1, figsize=(6, 4))
@@ -203,7 +263,7 @@ def entropy_kld(samples, pdf, path, filename, save_res=False):
     plt.xticks(rotation=30)
     fig.tight_layout()
     if save_res:
-        print(f"Saving entropy plot..")
+        print("Saving entropy plot..")
         fig.savefig(
             f"{path}/{filename}_entropy.pdf", bbox_inches="tight", transparent=True
         )
@@ -247,10 +307,124 @@ def dist_plot(samples, pdf, kappa, path, filename, fs=16, save_res=False):
     fig.tight_layout()
 
     if save_res:
-        print(f"Saving geodesic distance plot..")
+        print("Saving geodesic distance plot..")
         fig.savefig(f"{path}/{filename}_dist.pdf", transparent=True)
 
     plt.close(fig)
+
+
+def acf_kld_dist_plot(samples, pdf, path, filename, lag=80000, fs=16, save_res=False):
+    """
+    ACF entropy plot
+    """
+    warnings.filterwarnings("ignore", category=FutureWarning)
+
+    # population of modes
+    modes = np.array([p.mu for p in pdf.pdfs])
+
+    # kl-divergence
+    KL = []
+    for method in METHODS:
+        x = samples[method]
+        m = np.argmax(x @ modes.T, axis=1)
+        i, c = np.unique(m, return_counts=True)
+        p = np.full(len(modes), 1e-100)
+        p[i] = c
+        p[i] /= p.sum()
+        KL.append(p @ np.log(p / pdf.weights))
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    ax = axes[0]
+    for method in METHODS:
+        ac = acf(samples[method][:, 0], lag)
+        ax.plot(ac, alpha=0.7, lw=3, label=ALGOS[method])
+    ax.axhline(0.0, ls="--", color="k", alpha=0.7)
+    ax.set_xlabel(r"Lag", fontsize=fs)
+    ax.set_ylabel("ACF", fontsize=fs)
+    ax.legend(fontsize=fs, loc="upper right")
+    ax.tick_params(axis="both", which="major", labelsize=fs)
+
+    # KL divergence
+    ax2 = axes[1]
+    ax2.set_ylabel("KL divergence")
+    ax2.bar(list(map(ALGOS.get, METHODS)), KL, color="k", alpha=0.3)
+    ax2.tick_params(axis="x", labelrotation=30)
+    ax2.tick_params(axis="both", labelsize=fs)
+
+    ax3 = axes[2]
+
+    # Prepare the data for the histogram
+    geo_dist_list = []
+    for method in METHODS:
+        x = samples[method]
+        # Compute geodesic distances between successive samples
+        geo_dist = distance(x[:-1], x[1:])
+        # Check for Inf or NaN values
+        if not np.all(np.isfinite(geo_dist)):
+            logging.warning(
+                f"Infinite or NaN values found in geo_dist for method {method}"
+            )
+            # Remove or handle these values
+            geo_dist = geo_dist[np.isfinite(geo_dist)]
+        logging.info(
+            "average great circle distance of successive samples: "
+            f"{np.mean(geo_dist):.2f} ({method})"
+        )
+        # Create a DataFrame for the current method
+        df_method = pd.DataFrame({"geo_dist": geo_dist, "method": method})
+        geo_dist_list.append(df_method)
+
+    # Combine all DataFrames into one
+    df_geo_dist = pd.concat(geo_dist_list, ignore_index=True)
+
+    # Set the style
+    sns.set_style("white")  # Remove the background grid
+
+    # Create the histogram plot using Seaborn
+    sns.histplot(
+        data=df_geo_dist,
+        x="geo_dist",
+        hue="method",
+        bins=400,
+        stat="density",
+        element="step",  # Use 'bars' for filled histograms
+        fill=True,  # Set to True for filled histograms
+        common_norm=False,  # Normalize each histogram independently
+        linewidth=1.5,  # Adjust line width for better visibility
+        alpha=0.3,
+        ax=ax3,
+        # palette=method_color_dict,
+        legend=True,  # Ensure legend is enabled
+    )
+
+    # Customize the x-axis labels and ticks
+    ax3.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=20)
+    ax3.set_xticks([0, np.pi / 2, np.pi])
+    ax3.set_xticklabels(["0", r"$\pi/2$", r"$\pi$"], fontsize=20)
+    ax3.tick_params(axis="both", which="major", labelsize=fs)
+
+    # Set y-scale to logarithmic
+    ax3.set_yscale("log")
+    ax3.set_ylabel(None)  # Remove the y-axis label
+    ax3.set_xlim(0, np.pi)
+
+    # Customize the legend
+    leg = ax3.get_legend()
+    if leg is not None:
+        leg.set_title(None)  # Remove the legend title
+        for t in leg.texts:
+            t.set_fontsize(fs)
+        # Optionally, adjust the legend location
+        leg.set_bbox_to_anchor((1, 1))
+    else:
+        logging.warning("Legend not found in ax2.")
+
+    # Adjust layout
+    fig.tight_layout()
+
+    if save_res:
+        print("Saving ACF-KLD-geodesic distance plot..")
+        fig.savefig(f"{path}/{filename}_acf_kld_dist.pdf", transparent=True)
 
 
 def calc_ess(runs_samples, methods, path, return_ess=True):
@@ -270,7 +444,7 @@ def calc_ess(runs_samples, methods, path, return_ess=True):
         # calculate ess when `n_runs=10`
         if isinstance(runs_samples, list):
             if len(runs_samples) == 10:
-                print(f"Calculating ESS from samples..")
+                print("Calculating ESS from samples..")
                 ess = {method: None for method in methods}
 
                 for method in methods:
@@ -286,7 +460,7 @@ def calc_ess(runs_samples, methods, path, return_ess=True):
                 dump(ess, ess_file, gzip=True)
 
             else:
-                print(f"ESS values not computed, requires `n_runs=10`")
+                print("ESS values not computed, requires `n_runs=10`")
                 return None
 
     for method in methods:

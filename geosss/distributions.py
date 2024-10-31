@@ -1,17 +1,27 @@
 """
 Some common distributions on the sphere.
 """
+
 import functools
+from abc import ABC, abstractmethod
 
 import numpy as np
-from scipy.special import i0, ive, logsumexp
+from scipy.special import i0, iv, ive, logsumexp
 
 from geosss import sphere
+from geosss.spherical_curve import SphericalCurve
 from geosss.utils import counter
 
 
-class Distribution:
+class Distribution(ABC):
+    """Distributions abstract class"""
+
+    @abstractmethod
     def log_prob(self, x):
+        pass
+
+    @abstractmethod
+    def gradient(self, x):
         pass
 
 
@@ -25,9 +35,9 @@ class Uniform(Distribution):
 
 @counter(["log_prob", "gradient"])
 class Bingham(Distribution):
-    """Bingham distribution
+    r"""Bingham distribution
 
-    p(x) \propto \exp(x^T A x)
+    (x) \propto \exp(x^T A x)
 
     where A is a symmetric matrix without loss of generality.
 
@@ -108,7 +118,7 @@ class BinghamFisher(Bingham):
 class VonMisesFisher(Distribution):
     """Von Mises-Fisher distribution
 
-    vMF(x) \propto etr(mu^T x)
+    vMF(x) propto etr(mu^T x)
 
     where x is restricted to the unit sphere
     """
@@ -148,6 +158,31 @@ class VonMisesFisher(Distribution):
 
     def gradient(self, x):
         return self.mu
+
+
+@counter("log_prob")
+class MarginalVonMisesFisher(VonMisesFisher):
+    """Computing marginals of the von Mises-Fisher distribution"""
+
+    def __init__(self, dim_idx, mu):
+        super().__init__(mu)
+        self.dim_idx = dim_idx
+
+    def prob(self, x):
+        d = len(self.mu)
+        kappa = np.linalg.norm(self.mu)
+        mu = self.mu[self.dim_idx] / kappa
+        prob = (
+            np.sqrt(kappa / (2 * np.pi))
+            / iv(d / 2 - 1, kappa)
+            * ((1 - x**2) / (1 - mu**2)) ** ((d - 3) / 4)
+            * np.exp(kappa * mu * x)
+            * iv((d - 3) / 2, kappa * np.sqrt((1 - mu**2) * (1 - x**2)))
+        )
+        return prob
+
+    def log_prob(self, x):
+        return np.log(np.clip(self.prob(x), 1e-308, None))
 
 
 @counter("log_prob")
@@ -221,3 +256,23 @@ def random_bingham(d=2, vmax=None, vmin=None, eigensystem=False, seed=None):
         U = np.eye(d)
     A = (U * v) @ U.T
     return Bingham(A)
+
+
+@counter(["log_prob", "gradient"])
+class CurvedVonMisesFisher(Distribution):
+    def __init__(self, curve: SphericalCurve, kappa: float = 100.0):
+        self.curve = curve
+        self.kappa = kappa
+
+    @property
+    def d(self):
+        """dimension of the sphere"""
+        return self.curve.knots.shape[-1]
+
+    def log_prob(self, x):
+        if x.ndim == 1:
+            return self.kappa * (x @ self.curve.find_nearest(x))
+        return np.array(list(map(self.log_prob, x)))
+
+    def gradient(self, x):
+        return self.kappa * self.curve.find_nearest(x)

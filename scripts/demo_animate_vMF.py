@@ -14,22 +14,26 @@ algos = {
 }
 
 
-def show_sphere(pdf: gs.Distribution, n_grid: int = 100):
+def show_sphere(pdf: gs.Distribution, n_grid: int = 1000):
     """
     Util function for `animate_vMF` that shows four spheres as surface
     plots with a colormap based on the pdf.
 
     Args:
         pdf (gs.Distribution): probability density function
-        n_grid (int, optional): no. of grid on the sphere. Defaults to 100.
+        n_grid (int, optional): no. of grid on the sphere. Defaults to 1000.
 
     """
-
     sph2cart, pdf_vals = gs.sphere_pdf(n_grid, pdf)
     pdfnorm = Normalize(vmin=pdf_vals.min(), vmax=pdf_vals.max())
 
     fig, axes = plt.subplots(
-        2, 2, figsize=(10, 8), subplot_kw={"projection": "3d"}, sharex=True, sharey=True
+        1,
+        len(methods),
+        figsize=(16, 6),
+        subplot_kw={"projection": "3d"},
+        sharex=True,
+        sharey=True,
     )
 
     for ax, method in zip(axes.flat, methods):
@@ -37,15 +41,20 @@ def show_sphere(pdf: gs.Distribution, n_grid: int = 100):
         ax.plot_surface(
             *sph2cart,
             facecolors=plt.cm.terrain_r(pdfnorm(pdf_vals)),
-            alpha=0.8,
+            rstride=1,
+            cstride=1,
+            alpha=1.0,
             zorder=1,
+            edgecolor="none",
+            antialiased=True,
         )
-        ax.set_title(algos[method], fontsize=15)
-        ax.set_aspect("equal")
+        ax.set_title(algos[method], fontsize=15, pad=-50)
+        ax.set_aspect("auto")
         ax.view_init(-140, 150)
         ax.axis("off")
 
-    fig.tight_layout()
+    # Adjust layout to reduce gaps
+    plt.subplots_adjust(wspace=-0.1, hspace=-0.2)
 
     return fig, axes
 
@@ -55,6 +64,7 @@ def animate_vMF(
     samples: dict,
     frames: int = 20,
     fps: int = 20,
+    n_grid: int = 300,
     save_anim: bool = False,
     savepath: str = "results/animation_vMF",
 ):
@@ -76,7 +86,7 @@ def animate_vMF(
     n_samples = np.max([len(samples[method]) for method in methods])
     frame_range = np.linspace(1, n_samples, frames, dtype=int)
 
-    fig, axes = show_sphere(pdf, 100)
+    fig, axes = show_sphere(pdf, n_grid)
 
     def update(idx):
         # sample index updates faster
@@ -100,7 +110,7 @@ if __name__ == "__main__":
     d = 3  # dimension
     K = 3  # number of mixture components
     kappa = 80.0  # concentration parameter
-    run_anim = False  # switch to generate animation in README
+    run_anim = True  # switch to generate animation in README
 
     # mus of mixture components
     mus = np.array(
@@ -141,7 +151,7 @@ if __name__ == "__main__":
 
         # run animation
         anim = animate_vMF(
-            pdf, samples, fps=fps, save_anim=save_anim, savepath=savepath
+            pdf, samples, fps=fps, n_grid=100, save_anim=save_anim, savepath=savepath
         )
 
     # visualize samples in 3d

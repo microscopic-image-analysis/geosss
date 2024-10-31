@@ -1,6 +1,7 @@
 """
 Some utility functions for sampling from the sphere. 
 """
+
 import numpy as np
 
 # projections

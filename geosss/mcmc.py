@@ -4,6 +4,7 @@ General purpose Markov chain Monte Carlo algorithms:
 - Spherical Hamiltonian Monte Carlo
 - Slice sampling on the sphere using a rejection and a shrinkage sampler
 """
+
 import numpy as np
 
 from geosss import sphere

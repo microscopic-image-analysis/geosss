@@ -15,11 +15,8 @@
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
 This python package implements two novel tuning-free MCMC algorithms, an **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** to sample from spherical distributions on arbitrary dimensions. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned.
-As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for spherical distributions. 
+As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for spherical distributions. To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started, please install the package and follow along with the demo to illustrate the use of the algorithm as given below. 
 
-This demo quickly illustrates that. We consider a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$. By using $10^3$ samples, our samplers geoSSS (reject) and geoSSS (shrink) (top row) explore all modes, whereas RWMH and HMC (bottom row) get stuck in a single mode. 
-
-![animation_vMF](https://github.com/microscopic-image-analysis/geosss/blob/927ff8c8187b88a1a72725c4e450ae0f0523431b/assets/animation_vMF.gif?raw=true)
 
 ## Installation
 
@@ -29,20 +26,15 @@ GeoSSS is available for installation from [PyPI](https://pypi.org/project/geosss
 pip install geosss
 ```
 
-To install dependencies required to run scripts under [`scripts/`](scripts/),
+## Minimal Example
 
-```bash
-pip install geosss[extras]
-```
+We consider a target that is a mixture of von Mises-Fisher distribution on a 2-sphere with concentration parameter $\kappa=80$. By using $10^3$ samples, our samplers geoSSS (reject) and geoSSS (shrink) (top row) explore all modes, whereas RWMH and HMC (bottom row) get stuck in a single mode. 
 
-If you want to install with the latest changes including all the dependencies,
-```bash
-pip install geosss[extras]@git+https://github.com/microscopic-image-analysis/geosss.git@main
-```
+<p align="center">
+<img src="assets/animation_vMF.gif" width="1000">
+</p>
 
-## Getting Started
-
-A minimal example to get started as well as reproduce the above demo:
+This demo can be created with the below script.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microscopic-image-analysis/geosss/blob/main/scripts/demo.ipynb)
 ```python
@@ -95,17 +87,36 @@ samples['hmc'] = hmc.sample(n_samples, burnin)
 gs.compare_samplers_3d(pdf, samples)
 ```
 
-The plots in the [paper](https://doi.org/10.48550/arXiv.2301.08056) under numerical illustrations section were generated using [`bingham.py`](scripts/bingham.py), [`mixture_vMF.py`](scripts/mixture_vMF.py), [`ess_vMF.py`](scripts/ess_vMF.py) and [`curve.py`](scripts/curve.py).
+## Development and Reproducibility
 
-## Development
+It is preferable to install the package in the development mode for modifications. Additionally, this will also ensure reproducibility of the results from the numerical illustrations section of the [paper](https://doi.org/10.48550/arXiv.2301.08056).
 
-To install this package and its development dependencies in editable mode, please do the following
+Clone the repository and navigate to the root of the folder,
 
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
-pip install -e .[dev]
 ```
+
+You can now create a virtual environment (with `conda` for example),
+
+```bash
+conda create --name geosss-venv python=3.11 # or python >= 3.10, < 3.13
+conda activate geosss-venv
+```
+
+The dependencies can be installed in this environment with `pip` as,
+```bash
+pip install -r requirements.txt
+```
+
+Alternatively, because the `pyproject.toml` file is based on the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is possible to install with `poetry` in the activated `conda` environment.
+
+```bash
+poetry install --all-extras --sync
+```
+
+For reproducing the results in the paper, please check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
 
 ## Citation
 
