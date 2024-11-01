@@ -37,6 +37,8 @@ def show_sphere(pdf: gs.Distribution, n_grid: int = 1000):
     )
 
     for ax, method in zip(axes.flat, methods):
+        ax.set_box_aspect((1, 1, 1))
+        
         ax.computed_zorder = False
         ax.plot_surface(
             *sph2cart,
