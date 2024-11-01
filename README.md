@@ -31,7 +31,7 @@ pip install geosss
 We consider a target that is a mixture of von Mises-Fisher distributions on $\mathbb{S}^2$ with concentration parameter $\kappa=$ 80. By using 1000 samples, our samplers geoSSS (reject) and geoSSS (shrink) explore all modes, whereas RWMH and HMC get stuck in a single mode. 
 
 <p align="center">
-<img src="https://github.com/microscopic-image-analysis/geosss/blob/a550a03f00288894fae55dafd37f0f607359a7b2/assets/animation_vMF.gif" width="1000">
+<img src="https://github.com/microscopic-image-analysis/geosss/blob/1ed528f2b708cfc8b88bd78bd8f210e6a0d6372a/assets/animation_vMF.gif" width="1000">
 </p>
 
 This demo can be created with the below script.
