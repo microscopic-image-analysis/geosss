@@ -101,7 +101,7 @@ cd geosss
 You can now create a virtual environment (with `conda` for example),
 
 ```bash
-conda create --name geosss-venv python=3.11 # or python >= 3.10, < 3.13
+conda create --name geosss-venv python=3.12 # or python >= 3.10, < 3.13
 conda activate geosss-venv
 ```
 
