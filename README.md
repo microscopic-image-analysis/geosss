@@ -108,12 +108,13 @@ conda activate geosss-venv
 The dependencies can be installed in this environment with `pip` as,
 ```bash
 pip install -r requirements.txt
+pip install -e . --no-deps
 ```
 
 Alternatively, because the `pyproject.toml` file is based on the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is possible to install with `poetry` in the activated `conda` environment.
 
 ```bash
-poetry install --all-extras --sync
+poetry sync --all-extras
 ```
 
 For reproducing the results in the paper, please check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
