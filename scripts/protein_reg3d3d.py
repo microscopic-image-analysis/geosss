@@ -296,7 +296,7 @@ def plot_heatmap_logprobs(logprobs_chains, methods, savedir):
         plt.colorbar(im, ax=ax)
     fig.suptitle("Log-probabilities for every chain", fontsize=15)
     fig.tight_layout()
-    fig.savefig(f"{savedir}/protein_reg3d3d_logprobs.png", transparent=True, dpi=150)
+    fig.savefig(f"{savedir}/protein_reg3d3d_logprobs.png", dpi=150)
 
 
 def plot_avg_sampler_run_times(log_folder, methods, savedir):
@@ -339,7 +339,7 @@ def plot_avg_sampler_run_times(log_folder, methods, savedir):
     ax.set_ylabel("Average time (s)")
     fig.tight_layout()
 
-    fig.savefig(f"{savedir}/protein_reg3d3d_run_times.png", transparent=True, dpi=200)
+    fig.savefig(f"{savedir}/protein_reg3d3d_run_times.png", dpi=200)
 
 
 def compute_and_plot_sampler_success(logprobs_chains, methods, savedir):
@@ -382,9 +382,7 @@ def compute_and_plot_sampler_success(logprobs_chains, methods, savedir):
         ax.set_ylabel("success rate [%]")
         ax.legend()
 
-    fig.savefig(
-        f"{savedir}/protein_reg3d3d_success_rate.png", transparent=True, dpi=200
-    )
+    fig.savefig(f"{savedir}/protein_reg3d3d_success_rate.png", dpi=200)
 
 
 if __name__ == "__main__":
@@ -404,7 +402,7 @@ if __name__ == "__main__":
     if args["out_dir"] is not None:
         savedir = args["out_dir"]
     else:
-        savedir = f"results/protein_reg3d3d_CPD_chains{n_chains}/"
+        savedir = f"results/protein_reg3d3d_CPD_chains_{n_chains}/"
     os.makedirs(savedir, exist_ok=True)
     hdf5_filepath = f"{savedir}/reg_protein_3d3d_samples.hdf5"
 
@@ -440,18 +438,28 @@ if __name__ == "__main__":
     )
 
     # sampling for chains in parallel
-    samples_chains, logprobs_chains = launch_sampling_nchains(
-        METHODS,
-        target_pdf,
-        n_samples,
-        burnin,
-        hdf5_filepath,
-        reprod_switch,
-        n_chains,
-        seed_sequence=48385,
-        return_chains=True,
-        n_jobs=n_jobs,
-    )
+    if os.path.exists(hdf5_filepath):
+        logging.info(f"File {hdf5_filepath} already exists. Loading existing data.")
+        with h5py.File(hdf5_filepath, "r") as hf:
+            # Load existing samples and logprobs
+            samples_chains = {method: hf["samples"][method][()] for method in METHODS}
+            logprobs_chains = {method: hf["logprobs"][method][()] for method in METHODS}
+    else:
+        logging.info(f"File {hdf5_filepath} does not exist. Starting sampling.")
+        # Launch sampling for all chains
+        # This will run the samplers in parallel and save results to HDF5
+        samples_chains, logprobs_chains = launch_sampling_nchains(
+            METHODS,
+            target_pdf,
+            n_samples,
+            burnin,
+            hdf5_filepath,
+            reprod_switch,
+            n_chains,
+            seed_sequence=48385,
+            return_chains=True,
+            n_jobs=n_jobs,
+        )
 
     # plot diagnostics for this and store results
     compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir)
