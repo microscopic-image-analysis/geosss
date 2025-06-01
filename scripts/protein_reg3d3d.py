@@ -18,6 +18,7 @@ from geosss import (
 from geosss.pointcloud import PointCloud
 from geosss.registration import CoherentPointDrift, Registration
 from geosss.sphere import sample_sphere
+from geosss.sphere_tesselation import tessellate_rotations
 from geosss.utils import take_time
 
 
@@ -299,7 +300,7 @@ def plot_heatmap_logprobs(logprobs_chains, methods, savedir):
     fig.savefig(f"{savedir}/protein_reg3d3d_logprobs.png", dpi=150)
 
 
-def plot_avg_sampler_run_times(log_folder, methods, savedir):
+def plot_avg_sampler_run_times(log_folder, methods):
     file_pattern = "reg_3d2d_samples_chain"
 
     # Initialize dictionaries to store times
@@ -319,11 +320,11 @@ def plot_avg_sampler_run_times(log_folder, methods, savedir):
                 if match:
                     sampler_times[sampler].append(float(match.group(1)))
 
-        # Compute average times
-        average_times = {
-            sampler: np.mean(times) if times else 0
-            for sampler, times in sampler_times.items()
-        }
+    # Compute average times
+    average_times = {
+        sampler: np.mean(times) if times else 0
+        for sampler, times in sampler_times.items()
+    }
 
     # Print results
     print("Average times for each sampler:")
@@ -339,14 +340,11 @@ def plot_avg_sampler_run_times(log_folder, methods, savedir):
     ax.set_ylabel("Average time (s)")
     fig.tight_layout()
 
-    fig.savefig(f"{savedir}/protein_reg3d3d_run_times.png", dpi=200)
+    fig.savefig(f"{log_folder}/protein_reg3d3d_run_times.png", dpi=200)
 
 
 def compute_and_plot_sampler_success(logprobs_chains, methods, savedir):
-    for method in methods:
-        print(f"Max log prob. for method {method}: {logprobs_chains[method].max():.2f}")
-
-    # create success criteria (10% of max log prob)
+    # create success criteria (5% of max log prob)
     max_log_prob = np.array([logprobs_chains[method] for method in methods]).max()
     criteria_threshold = 0.05
     criteria = max_log_prob + criteria_threshold * max_log_prob
@@ -462,6 +460,37 @@ if __name__ == "__main__":
         )
 
     # plot diagnostics for this and store results
-    compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir)
-    plot_avg_sampler_run_times(samples_chains, METHODS, savedir)
     plot_heatmap_logprobs(logprobs_chains, METHODS, savedir)
+
+    # TODO: Need to fix this run time plot to read the time correctly
+    plot_avg_sampler_run_times(savedir, METHODS)
+
+    # systematic rotational search via 600-cell for generating ground truth
+    if not os.path.exists(f"{savedir}/log_probs_tesselations.hdf5"):
+        # Generate rotations for systematic search via 600-cell
+        print("Generating rotations for systematic search...")
+        quaternions_tesselations = tessellate_rotations(n_discretize=3)
+        print(f"Generated {len(quaternions_tesselations)} rotations")
+
+        # Evaluate rotations
+        print("Evaluating rotations with 600-cell...")
+        log_probs_tesselations = np.zeros(len(quaternions_tesselations))
+        for i, q in enumerate(quaternions_tesselations):
+            # log_probs[i] = target_pdf._log_prob_R(q)
+            log_probs_tesselations[i] = target_pdf.log_prob(q)
+            if i % 100 == 0:  # Show progress every 10 rotations
+                print(f"Evaluated {i}/{len(quaternions_tesselations)} rotations")
+
+        with h5py.File(f"{savedir}/log_probs_tesselations.hdf5", "w") as hf:
+            hf.create_dataset("quaternions", data=quaternions_tesselations)
+            hf.create_dataset("log_probs", data=log_probs_tesselations)
+    else:
+        with h5py.File(f"{savedir}/log_probs_tesselations.hdf5", "r") as hf:
+            quaternions_tesselations = hf["quaternions"][()]
+            log_probs_tesselations = hf["log_probs"][()]
+
+    # TODO: Consider the max log prob from the tesselation search instead of
+    # the max log prob from the sampler
+    compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir)
+
+    # TODO: Plot a slice through that log prob.
