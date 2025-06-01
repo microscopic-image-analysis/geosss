@@ -460,8 +460,6 @@ if __name__ == "__main__":
 
     # plot diagnostics for this and store results
     plot_heatmap_logprobs(logprobs_chains, METHODS, savedir)
-
-    # TODO: Need to fix this run time plot to read the time correctly
     plot_avg_sampler_run_times(savedir, METHODS)
 
     # systematic rotational search via 600-cell for generating ground truth
