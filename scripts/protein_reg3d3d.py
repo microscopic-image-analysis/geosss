@@ -343,11 +343,10 @@ def plot_avg_sampler_run_times(log_folder, methods):
     fig.savefig(f"{log_folder}/protein_reg3d3d_run_times.png", dpi=200)
 
 
-def compute_and_plot_sampler_success(logprobs_chains, methods, savedir):
+def compute_and_plot_sampler_success(logprobs_chains, methods, savedir, best_log_prob):
     # create success criteria (5% of max log prob)
-    max_log_prob = np.array([logprobs_chains[method] for method in methods]).max()
     criteria_threshold = 0.05
-    criteria = max_log_prob + criteria_threshold * max_log_prob
+    criteria = best_log_prob + criteria_threshold * best_log_prob
     print(f"success criteria {criteria: .2f}")
     print("=============")
 
@@ -478,7 +477,7 @@ if __name__ == "__main__":
         for i, q in enumerate(quaternions_tesselations):
             # log_probs[i] = target_pdf._log_prob_R(q)
             log_probs_tesselations[i] = target_pdf.log_prob(q)
-            if i % 100 == 0:  # Show progress every 10 rotations
+            if i % 500 == 0:  # Show progress every 500 rotations
                 print(f"Evaluated {i}/{len(quaternions_tesselations)} rotations")
 
         with h5py.File(f"{savedir}/log_probs_tesselations.hdf5", "w") as hf:
@@ -491,6 +490,7 @@ if __name__ == "__main__":
 
     # TODO: Consider the max log prob from the tesselation search instead of
     # the max log prob from the sampler
-    compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir)
+    best_log_prob = log_probs_tesselations.max()
+    compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir, best_log_prob)
 
     # TODO: Plot a slice through that log prob.
