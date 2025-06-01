@@ -301,7 +301,7 @@ def plot_heatmap_logprobs(logprobs_chains, methods, savedir):
 
 
 def plot_avg_sampler_run_times(log_folder, methods):
-    file_pattern = "reg_3d2d_samples_chain"
+    file_pattern = "reg_protein_3d3d_samples_chain"
 
     # Initialize dictionaries to store times
     sampler_times = {"sss-reject": [], "sss-shrink": [], "rwmh": [], "hmc": []}
