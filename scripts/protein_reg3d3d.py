@@ -486,9 +486,6 @@ if __name__ == "__main__":
             quaternions_tesselations = hf["quaternions"][()]
             log_probs_tesselations = hf["log_probs"][()]
 
-    # TODO: Consider the max log prob from the tesselation search instead of
-    # the max log prob from the sampler
+    # get the best log prob from tesselations and plot sampler success rate
     best_log_prob = log_probs_tesselations.max()
     compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir, best_log_prob)
-
-    # TODO: Plot a slice through that log prob.
