@@ -52,7 +52,7 @@ class Sampler:
         """
         raise NotImplementedError
 
-    def sample(self, n_samples, burnin=0):
+    def sample(self, n_samples, burnin=0, return_all_samples=False):
         """
         Generates a Markov chain consisting of the desired size. An optional burnin can
         be specified, either as an integer (in which case it is taken as is) or a float
@@ -67,6 +67,11 @@ class Sampler:
         samples = [self.state]
         while len(samples) < (n_samples + burnin):
             samples.append(np.copy(next(self)))
+
+        if return_all_samples:
+            # especially if we want to adapt step size during burnin, but want
+            # all samples
+            return np.array(samples)
 
         # chop away burn-in and return remaining samples
         return np.array(samples[burnin:])
@@ -157,7 +162,7 @@ class MetropolisHastings(Sampler, AdaptiveStepsize):
             self.state = state
         return np.copy(self.state)
 
-    def sample(self, n_samples, burnin=0):
+    def sample(self, n_samples, burnin=0, return_all_samples=False):
         """
         Generates a Markov chain consisting of the desired size. An optional
         burn-in can be specified, either as an integer (in which case it is
@@ -165,7 +170,7 @@ class MetropolisHastings(Sampler, AdaptiveStepsize):
         interpreted as percentage of the desired number of samples).
         """
         self.reset(determine_burnin(n_samples, burnin))
-        return super().sample(n_samples, burnin)
+        return super().sample(n_samples, burnin, return_all_samples)
 
 
 class IndependenceSampler(MetropolisHastings):
@@ -258,8 +263,14 @@ class SphericalHMC(MetropolisHastings):
         prob = self.hamiltonian(self.state) - self.hamiltonian(state)
         return np.log(self.rng.random()) < prob
 
-    def sample(self, n_samples, burnin=0, return_momenta=False):
-        samples = super().sample(n_samples, burnin)
+    def sample(
+        self,
+        n_samples,
+        burnin=0,
+        return_momenta=False,
+        return_all_samples=False,
+    ):
+        samples = super().sample(n_samples, burnin, return_all_samples)
         positions, momenta = np.swapaxes(np.reshape(samples, (n_samples, 2, -1)), 1, 0)
         return (positions, momenta) if return_momenta else positions
 
