@@ -99,40 +99,88 @@ def setup_logging(logpath: str, filemode: str = "a"):
 class SamplerLauncher:
     """Just an interface for launching all the samplers"""
 
-    def __init__(self, pdf, initial, n_samples, burnin=0.2, seed=None):
+    def __init__(
+        self,
+        pdf,
+        initial,
+        n_samples,
+        burnin=0.2,
+        seed=None,
+        return_all_samples=False,
+    ):
         self.pdf = pdf
         self.initial = initial
         self.n_samples = n_samples
         self.burnin = burnin
         self.seed = seed
+        self.return_all_samples = return_all_samples
 
     def run_sss_reject(self):
-        sampler = RejectionSphericalSliceSampler(self.pdf, self.initial, self.seed)
+        sampler = RejectionSphericalSliceSampler(
+            self.pdf,
+            self.initial,
+            self.seed,
+        )
         self.rsss = sampler
 
-        return sampler.sample(self.n_samples, burnin=self.burnin)
+        return sampler.sample(
+            self.n_samples,
+            burnin=self.burnin,
+            return_all_samples=self.return_all_samples,
+        )
 
     def run_sss_shrink(self):
-        sampler = ShrinkageSphericalSliceSampler(self.pdf, self.initial, self.seed)
+        sampler = ShrinkageSphericalSliceSampler(
+            self.pdf,
+            self.initial,
+            self.seed,
+        )
         self.ssss = sampler
 
-        return sampler.sample(self.n_samples, burnin=self.burnin)
+        return sampler.sample(
+            self.n_samples,
+            burnin=self.burnin,
+            return_all_samples=self.return_all_samples,
+        )
 
     def run_rwmh(self, stepsize=1e-1):
         sampler = MetropolisHastings(
-            self.pdf, self.initial, self.seed, stepsize=stepsize
+            self.pdf,
+            self.initial,
+            self.seed,
+            stepsize=stepsize,
         )
         self.rwmh = sampler
 
-        return sampler.sample(self.n_samples, burnin=self.burnin)
+        logging.info(f"Original RWMH stepsize: {self.rwmh.stepsize}")
+        samples = sampler.sample(
+            self.n_samples,
+            burnin=self.burnin,
+            return_all_samples=self.return_all_samples,
+        )
+        logging.info(f"New RWMH stepsize: {self.rwmh.stepsize}")
+        return samples
 
     def run_hmc(self, stepsize=1e-1):
-        sampler = SphericalHMC(self.pdf, self.initial, self.seed, stepsize=stepsize)
+        sampler = SphericalHMC(
+            self.pdf,
+            self.initial,
+            self.seed,
+            stepsize=stepsize,
+            n_steps=50,
+        )
         self.hmc = sampler
 
-        return sampler.sample(self.n_samples, burnin=self.burnin)
+        logging.info(f"Original HMC stepsize: {self.hmc.stepsize}")
+        samples = sampler.sample(
+            self.n_samples,
+            burnin=self.burnin,
+            return_all_samples=self.return_all_samples,
+        )
+        logging.info(f"New HMC stepsize: {self.hmc.stepsize}")
+        return samples
 
-    def run(self, method, stepsize_hmc=1e-1, stepsize_rwmh=1e-1):
+    def run(self, method, stepsize_hmc=1e-3, stepsize_rwmh=1e-1):
         if method == "sss-reject":
             return self.run_sss_reject()
         elif method == "sss-shrink":
@@ -163,7 +211,14 @@ def _sampler_single_run(
     logging.info(f"Initial state for this run: {init_state}")
 
     # Create a new SamplerLauncher instance
-    launcher = SamplerLauncher(pdf, init_state, n_samples, burnin, seed_sampler)
+    launcher = SamplerLauncher(
+        pdf,
+        init_state,
+        n_samples,
+        burnin,
+        seed_sampler,
+        return_all_samples=True,
+    )
 
     samples = {}
     logprob = {}
@@ -343,10 +398,9 @@ def plot_avg_sampler_run_times(log_folder, methods):
     fig.savefig(f"{log_folder}/protein_reg3d3d_run_times.png", dpi=200)
 
 
-def compute_and_plot_sampler_success(logprobs_chains, methods, savedir, best_log_prob):
+def compute_and_plot_sampler_success(logprobs_chains, methods, savedir, criteria):
     # create success criteria (5% of max log prob)
-    criteria_threshold = 0.05
-    criteria = best_log_prob + criteria_threshold * best_log_prob
+
     print(f"success criteria {criteria: .2f}")
     print("=============")
 
@@ -394,6 +448,9 @@ if __name__ == "__main__":
     n_chains = args["n_chains"]
     n_jobs = args["n_jobs"]
     reprod_switch = True
+    n_samples = 200
+    n_chains = 2
+    burnin = 0.2
 
     # Directory to save results
     if args["out_dir"] is not None:
@@ -408,8 +465,18 @@ if __name__ == "__main__":
     setup_logging(logpath)
 
     # model parameters
-    target = PointCloud(data["target"])
-    source = PointCloud(data["source"])
+    target = PointCloud(
+        positions=data["target"],
+        weights=None,
+    )
+
+    n_points = len(data["target"])
+    source_weights = np.full(n_points, 1 / n_points)
+    source = PointCloud(
+        positions=data["source"],
+        weights=source_weights,
+    )
+
     sigma = data["sigma"]
     omega = data["prob_outlier"]
 
@@ -435,7 +502,8 @@ if __name__ == "__main__":
     )
 
     # sampling for chains in parallel
-    if os.path.exists(hdf5_filepath):
+    rerun_samplers = True  # Set to True to always rerun samplers
+    if not rerun_samplers and os.path.exists(hdf5_filepath):
         logging.info(f"File {hdf5_filepath} already exists. Loading existing data.")
         with h5py.File(hdf5_filepath, "r") as hf:
             # Load existing samples and logprobs
@@ -475,7 +543,7 @@ if __name__ == "__main__":
         for i, q in enumerate(quaternions_tesselations):
             # log_probs[i] = target_pdf._log_prob_R(q)
             log_probs_tesselations[i] = target_pdf.log_prob(q)
-            if i % 500 == 0:  # Show progress every 500 rotations
+            if i % 1000 == 0:  # Show progress every 1000 rotations
                 print(f"Evaluated {i}/{len(quaternions_tesselations)} rotations")
 
         with h5py.File(f"{savedir}/log_probs_tesselations.hdf5", "w") as hf:
@@ -487,5 +555,10 @@ if __name__ == "__main__":
             log_probs_tesselations = hf["log_probs"][()]
 
     # get the best log prob from tesselations and plot sampler success rate
+    # TODO: Rerun when sampler params are decided to compute success rate
     best_log_prob = log_probs_tesselations.max()
-    compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir, best_log_prob)
+    criteria_threshold = 0.05
+    criteria = best_log_prob + criteria_threshold * best_log_prob
+
+    criteria = -2300
+    compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir, criteria)
