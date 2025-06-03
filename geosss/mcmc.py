@@ -271,7 +271,9 @@ class SphericalHMC(MetropolisHastings):
         return_all_samples=False,
     ):
         samples = super().sample(n_samples, burnin, return_all_samples)
-        positions, momenta = np.swapaxes(np.reshape(samples, (n_samples, 2, -1)), 1, 0)
+        positions, momenta = np.swapaxes(
+            np.reshape(samples, (len(samples), 2, -1)), 1, 0
+        )
         return (positions, momenta) if return_momenta else positions
 
 
