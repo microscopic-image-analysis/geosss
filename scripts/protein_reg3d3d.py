@@ -35,7 +35,7 @@ def argparser():
     parser.add_argument(
         "--burnin",
         type=float,
-        default=0.0,
+        default=0.2,
         help="Fraction of burn-in samples per sampler (default: 0.2)",
     )
 
@@ -154,7 +154,7 @@ class SamplerLauncher:
 
         logging.info(f"Original RWMH stepsize: {self.rwmh.stepsize}")
         samples = sampler.sample(
-            self.n_samples,
+            self.n_samples * 6,
             burnin=self.burnin,
             return_all_samples=self.return_all_samples,
         )
@@ -201,6 +201,7 @@ def _sampler_single_run(
     seed_sampler: int = None,
     seed_initial_state: int = None,
     logpath: str = None,
+    return_all_samples: bool = False,
 ):
     """Runs a single sampler and returns the results."""
     # Set up logging for this process
@@ -217,7 +218,7 @@ def _sampler_single_run(
         n_samples,
         burnin,
         seed_sampler,
-        return_all_samples=True,
+        return_all_samples,
     )
 
     samples = {}
@@ -265,6 +266,7 @@ def launch_sampling_nchains(
     seed_sequence: int = 48385,
     return_chains: bool = False,
     n_jobs: int = None,
+    return_all_samples: bool = False,
 ):
     """Original function that parallelizes only over chains, kept for backward compatibility."""
 
@@ -300,6 +302,7 @@ def launch_sampling_nchains(
                 seed_sampler,
                 seed_initial_state,
                 logpath_i,
+                return_all_samples,
             )
         )
 
@@ -355,7 +358,50 @@ def plot_heatmap_logprobs(logprobs_chains, methods, savedir):
     fig.savefig(f"{savedir}/protein_reg3d3d_logprobs.png", dpi=150)
 
 
-def plot_avg_sampler_run_times(log_folder, methods):
+def plot_hist_logprobs(log_probs_C600, logprobs_chains, methods, savedir, threshold):
+    # compare histogram of the log probs for all the methods
+    fig, axes = plt.subplots(1, len(methods) + 1, figsize=(16, 3))
+    colors = ["blue", "tab:orange", "tab:green", "tab:red"]
+
+    axes[0].hist(
+        log_probs_C600,
+        bins=50,
+        alpha=0.5,
+        label="tesselations",
+        color="k",
+        density=True,
+    )
+    print(f"best systematic-search log prob: {np.max(log_probs_C600)}")
+    axes[0].axvline(threshold, color="k", ls="--", label="optimum")
+    axes[0].set_title("systematic search via \n600-cell")
+    axes[0].ticklabel_format(style="scientific", axis="both", scilimits=(0, 0))
+    axes[0].set_yscale("log")
+    for i, (ax, method) in enumerate(zip(axes[1:], methods)):
+        log_probs_method = logprobs_chains[method].flatten()
+        ax.hist(
+            log_probs_method,
+            bins=50,
+            alpha=0.5,
+            color=colors[i],
+            density=True,
+        )
+        ax.set_title(method)
+        ax.ticklabel_format(style="scientific", axis="both", scilimits=(0, 0))
+        gmm_best_sampler = log_probs_method[np.argmax(log_probs_method)]
+        print(f"best {method} log prob: {gmm_best_sampler}")
+        ax.axvline(
+            gmm_best_sampler,
+            lw=2,
+            color=colors[i],
+            ls="--",
+        )
+        ax.set_yscale("log")
+
+    fig.tight_layout()
+    fig.savefig(f"{savedir}/protein_reg3d3d_hist_logprobs.png", dpi=150)
+
+
+def plot_avg_sampler_run_times(log_folder, methods, return_times=False):
     file_pattern = "reg_protein_3d3d_samples_chain"
 
     # Initialize dictionaries to store times
@@ -381,6 +427,9 @@ def plot_avg_sampler_run_times(log_folder, methods):
         for sampler, times in sampler_times.items()
     }
 
+    if return_times:
+        return list(average_times.values())
+
     # Print results
     print("Average times for each sampler:")
     for sampler, avg_time in average_times.items():
@@ -398,14 +447,16 @@ def plot_avg_sampler_run_times(log_folder, methods):
     fig.savefig(f"{log_folder}/protein_reg3d3d_run_times.png", dpi=200)
 
 
-def compute_and_plot_sampler_success(logprobs_chains, methods, savedir, criteria):
+def compute_and_plot_sampler_success(
+    logprobs_chains, methods, savedir, criteria, n_samples
+):
     # create success criteria (5% of max log prob)
 
     print(f"success criteria {criteria: .2f}")
     print("=============")
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 5))
-    n_step = 10
+    n_step = 10  # every 10 samples
     n_complete = (n_samples // n_step) * n_step
     for method in methods:
         # computing mean for every consecutive 10 samples
@@ -417,7 +468,7 @@ def compute_and_plot_sampler_success(logprobs_chains, methods, savedir, criteria
         # samples greater than the threshold
         success_rate = samples_mean_every_nstep > criteria
         success_rate_over_chains = np.mean(success_rate, axis=0)
-
+        print(f"Success rate for {method}: {success_rate_over_chains}")
         x = np.linspace(0, n_samples, n_samples // n_step)
         y = success_rate_over_chains * 100
         ax.scatter(
@@ -436,6 +487,50 @@ def compute_and_plot_sampler_success(logprobs_chains, methods, savedir, criteria
     fig.savefig(f"{savedir}/protein_reg3d3d_success_rate.png", dpi=200)
 
 
+def compute_and_plot_sampler_success_times(
+    logprobs_chains, methods, savedir, criteria, n_samples
+):
+    # create success criteria (5% of max log prob)
+
+    print(f"success criteria {criteria: .2f}")
+    print("=============")
+    times = plot_avg_sampler_run_times(savedir, methods, return_times=True)
+
+    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+    n_step = 10  # every 10 samples
+    n_complete = (n_samples // n_step) * n_step
+    for i, method in enumerate(methods):
+        # computing mean for every consecutive 10 samples
+        samples_truncated = logprobs_chains[method][:, :n_complete]
+        samples_mean_every_nstep = np.mean(
+            samples_truncated.reshape(-1, n_samples // n_step, n_step), axis=2
+        )
+
+        # samples greater than the threshold
+        success_rate = samples_mean_every_nstep > criteria
+        success_rate_over_chains = np.mean(success_rate, axis=0)
+        print(f"Success rate for {method}: {success_rate_over_chains}")
+        x = np.linspace(0, 1, n_samples // n_step) * times[i]
+        y = success_rate_over_chains * 100
+        ax.scatter(
+            x,
+            y,
+            s=10,
+            marker="o",
+            label=method,
+        )
+        ax.plot(x, y, ls="--")
+        ax.set_title("Success rate of samples")
+        ax.set_xlabel("Computation time [s]")
+        ax.set_ylabel("success rate [%]")
+        ax.legend()
+        ax.set_xlim(0, times[1])
+
+    plt.show()
+
+    fig.savefig(f"{savedir}/protein_reg3d3d_success_rate_times.png", dpi=200)
+
+
 if __name__ == "__main__":
     METHODS = ("sss-reject", "sss-shrink", "rwmh", "hmc")
     data = np.load("data/protein_registration.npz")
@@ -448,9 +543,6 @@ if __name__ == "__main__":
     n_chains = args["n_chains"]
     n_jobs = args["n_jobs"]
     reprod_switch = True
-    n_samples = 200
-    n_chains = 2
-    burnin = 0.2
 
     # Directory to save results
     if args["out_dir"] is not None:
@@ -502,7 +594,7 @@ if __name__ == "__main__":
     )
 
     # sampling for chains in parallel
-    rerun_samplers = True  # Set to True to always rerun samplers
+    rerun_samplers = False  # Set to True to always rerun samplers
     if not rerun_samplers and os.path.exists(hdf5_filepath):
         logging.info(f"File {hdf5_filepath} already exists. Loading existing data.")
         with h5py.File(hdf5_filepath, "r") as hf:
@@ -524,11 +616,8 @@ if __name__ == "__main__":
             seed_sequence=48385,
             return_chains=True,
             n_jobs=n_jobs,
+            return_all_samples=True,  # extra `int(burnin * n_samples)` samples will be returned
         )
-
-    # plot diagnostics for this and store results
-    plot_heatmap_logprobs(logprobs_chains, METHODS, savedir)
-    plot_avg_sampler_run_times(savedir, METHODS)
 
     # systematic rotational search via 600-cell for generating ground truth
     if not os.path.exists(f"{savedir}/log_probs_tesselations.hdf5"):
@@ -560,5 +649,36 @@ if __name__ == "__main__":
     criteria_threshold = 0.05
     criteria = best_log_prob + criteria_threshold * best_log_prob
 
+    # manually set the criteria for success rate
+    # and plot histograms of log probabilities
     criteria = -2300
-    compute_and_plot_sampler_success(logprobs_chains, METHODS, savedir, criteria)
+    plot_hist_logprobs(
+        log_probs_tesselations,
+        logprobs_chains,
+        METHODS,
+        savedir,
+        criteria,
+    )
+
+    compute_and_plot_sampler_success_times(
+        logprobs_chains,
+        METHODS,
+        savedir,
+        criteria,
+        n_samples,
+    )
+
+    # NOTE: `n_samples` will not use the last `int(burnin * n_samples)` samples,
+    # if needed, this can be explicitly added to `n_samples`.
+    # See `return_all_samples=True`
+    compute_and_plot_sampler_success(
+        logprobs_chains,
+        METHODS,
+        savedir,
+        criteria,
+        n_samples,
+    )
+
+    # plot diagnostics for samplers and store results
+    plot_heatmap_logprobs(logprobs_chains, METHODS, savedir)
+    plot_avg_sampler_run_times(savedir, METHODS)
