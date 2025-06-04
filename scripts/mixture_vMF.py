@@ -78,7 +78,7 @@ def run_samplers(
     runs_samples = []
     runs_logprob = []
     for i in range(n_runs):
-        print(f"\nRun {i+1}\n-------------------------------")
+        print(f"\nRun {i + 1}\n-------------------------------")
 
         # fixes seed for initial state and samplers
         seed = seeds[i] if reprod_switch else None
@@ -243,17 +243,27 @@ def visualize_samples(
     ndim = pdf.pdfs[0].d
 
     vis.acf_kld_dist_plot(
-        samples, pdf, path, filename, lag=acf_lag, fs=16, save_res=save_res
+        samples,
+        pdf,
+        path,
+        filename,
+        lag=acf_lag,
+        fs=16,
+        save_res=save_res,
     )
 
     # plot histogram with mixture of true vMF marginal
     vis.hist_plot_mixture_marginals(
-        pdf, samples, ndim, path, filename, save_res=save_res
+        pdf,
+        samples,
+        ndim,
+        path,
+        filename,
+        save_res=save_res,
     )
 
     # additional-plots (not used in paper)
     if misc_plots:
-
         # geodesic distance
         vis.dist_plot(samples, pdf, kappa, path, filename, save_res=save_res)
 
