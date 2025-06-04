@@ -35,8 +35,8 @@ def argparser():
     parser.add_argument(
         "--burnin",
         type=float,
-        default=0.2,
-        help="Fraction of burn-in samples per sampler (default: 0.2)",
+        default=0.0,
+        help="Fraction of burn-in samples per sampler (default: 0.0)",
     )
 
     parser.add_argument(
@@ -180,7 +180,12 @@ class SamplerLauncher:
         logging.info(f"New HMC stepsize: {self.hmc.stepsize}")
         return samples
 
-    def run(self, method, stepsize_hmc=1e-3, stepsize_rwmh=1e-1):
+    def run(
+        self,
+        method,
+        stepsize_rwmh=1e-1,
+        stepsize_hmc=1e-3,
+    ):
         if method == "sss-reject":
             return self.run_sss_reject()
         elif method == "sss-shrink":
@@ -202,6 +207,8 @@ def _sampler_single_run(
     seed_initial_state: int = None,
     logpath: str = None,
     return_all_samples: bool = False,
+    stepsize_rwmh: float = 1e-1,
+    stepsize_hmc: float = 1e-3,
 ):
     """Runs a single sampler and returns the results."""
     # Set up logging for this process
@@ -227,7 +234,7 @@ def _sampler_single_run(
     for method in methods:
         with take_time(method):
             # Sample quaternions
-            samples[method] = launcher.run(method)
+            samples[method] = launcher.run(method, stepsize_rwmh, stepsize_hmc)
 
             # Evaluate the density at the sampled quaternions
             logprob[method] = np.array([pdf.log_prob(draw) for draw in samples[method]])
@@ -267,6 +274,8 @@ def launch_sampling_nchains(
     return_chains: bool = False,
     n_jobs: int = None,
     return_all_samples: bool = False,
+    stepsize_rwmh: float = 1e-1,
+    stepsize_hmc: float = 1e-3,
 ):
     """Original function that parallelizes only over chains, kept for backward compatibility."""
 
@@ -303,6 +312,8 @@ def launch_sampling_nchains(
                 seed_initial_state,
                 logpath_i,
                 return_all_samples,
+                stepsize_rwmh,
+                stepsize_hmc,
             )
         )
 
@@ -488,7 +499,11 @@ def compute_and_plot_sampler_success(
 
 
 def compute_and_plot_sampler_success_times(
-    logprobs_chains, methods, savedir, criteria, n_samples
+    logprobs_chains,
+    methods,
+    savedir,
+    criteria,
+    n_samples,
 ):
     # create success criteria (5% of max log prob)
 
@@ -501,13 +516,13 @@ def compute_and_plot_sampler_success_times(
     n_complete = (n_samples // n_step) * n_step
     for i, method in enumerate(methods):
         # computing mean for every consecutive 10 samples
-        samples_truncated = logprobs_chains[method][:, :n_complete]
-        samples_mean_every_nstep = np.mean(
-            samples_truncated.reshape(-1, n_samples // n_step, n_step), axis=2
+        logprobs_truncated = logprobs_chains[method][:, :n_complete]
+        logprobs_mean_every_nstep = np.mean(
+            logprobs_truncated.reshape(-1, n_samples // n_step, n_step), axis=2
         )
 
         # samples greater than the threshold
-        success_rate = samples_mean_every_nstep > criteria
+        success_rate = logprobs_mean_every_nstep > criteria
         success_rate_over_chains = np.mean(success_rate, axis=0)
         print(f"Success rate for {method}: {success_rate_over_chains}")
         x = np.linspace(0, 1, n_samples // n_step) * times[i]
@@ -616,7 +631,9 @@ if __name__ == "__main__":
             seed_sequence=48385,
             return_chains=True,
             n_jobs=n_jobs,
-            return_all_samples=True,  # extra `int(burnin * n_samples)` samples will be returned
+            return_all_samples=False,  # extra `int(burnin * n_samples)` samples will be returned,
+            stepsize_rwmh=0.015,  # Fixed (optimal) value, for automatic tuning, set burnin > 0.0
+            stepsize_hmc=0.012,  # Fixed (optimal) value, for automatic tuning, set burnin > 0.0
         )
 
     # systematic rotational search via 600-cell for generating ground truth
