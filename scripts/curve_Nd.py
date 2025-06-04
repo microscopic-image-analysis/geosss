@@ -3,7 +3,6 @@ import logging
 import os
 import warnings
 
-import corner
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
@@ -137,98 +136,6 @@ def launch_samplers(
     return samples, logprob
 
 
-def scatter_matrix(n_dim, samples, methods, algos, savedir, filename, savefig=False):
-    """
-    Plotting scatter matrix with the corner library and adjusted label sizes
-    """
-    # Define font sizes
-    label_size = 32  # Size for axis labels
-    tick_size = 20  # Size for tick labels
-    legend_size = 24  # Size for legend
-
-    # create dir to save scatter matrices
-    labels = [rf"$x_{i}$" for i in range(n_dim)]
-
-    # Set default font sizes for matplotlib
-    plt.rcParams.update(
-        {
-            "font.size": tick_size,
-            "axes.labelsize": label_size,
-            "axes.titlesize": label_size,
-            "xtick.labelsize": tick_size,
-            "ytick.labelsize": tick_size,
-        }
-    )
-
-    # Create custom labels for each dataset
-    colors = ["tab:blue", "tab:orange", "tab:green", "indianred"]
-
-    figure = plt.figure(figsize=(18, 18))
-
-    for method, color in zip(methods, colors):
-
-        # samples for every method (draws, dimensions)
-        samples_per_method = samples[method][: int(1e6)]
-
-        # First corner plot for contours and 1D histograms using all samples
-        figure = corner.corner(
-            samples_per_method,
-            bins=250,
-            color=color,
-            labels=labels,
-            fig=figure,
-            plot_density=False,
-            plot_contours=True,  # shows the 2D histograms with contours
-            contour_kwargs={"alpha": 0.6},
-            plot_datapoints=False,
-            levels=[0.68, 0.95],
-            labelsize=label_size,
-            label_kwargs={"fontsize": label_size, "labelpad": 10},
-            tick_labels_size=tick_size,
-            hist_kwargs={"alpha": 1.0},  # 1D histogram
-            smooth1d=2,  # smoothens the 1D histogram
-        )
-
-        # Second corner plot for showing fewer scatter points
-        figure = corner.corner(
-            samples_per_method[::20],
-            bins=50,
-            color=color,
-            plot_density=False,
-            plot_contours=False,
-            fig=figure,
-            plot_datapoints=True,  # only shows the scatter points
-            data_kwargs={"alpha": 0.1},
-            labels=labels,
-            labelsize=label_size,
-            label_kwargs={"fontsize": label_size, "labelpad": 10},
-            tick_labels_size=tick_size,
-            hist_kwargs={"alpha": 0.0},  # 1D histogram disabled
-        )
-
-    # Create custom legend with the figure instance
-    legend_handles = [plt.Line2D([0], [0], color=color, lw=4) for color in colors]
-    figure.legend(
-        legend_handles,
-        [algos[method] for method in methods],
-        loc="upper right",
-        fontsize=legend_size,
-    )
-
-    # Adjust tick label sizes for all axes
-    axes = np.array(figure.axes).reshape((n_dim, n_dim))
-    for ax in axes.flat:
-        if ax is not None:
-            ax.tick_params(labelsize=tick_size)
-
-    # save corner plot
-    if savefig:
-        savedir = f"{savedir}/corner_plots"
-        os.makedirs(savedir, exist_ok=True)
-        logging.info(f"Saving corner plot to {savedir}/{filename}.pdf")
-        figure.savefig(f"{savedir}/{filename}.pdf", bbox_inches="tight", dpi=150)
-
-
 def acf_geodist_plot(
     samples,
     methods,
@@ -237,7 +144,6 @@ def acf_geodist_plot(
     filename="curve_acf_distplot",
     savefig=True,
 ):
-
     # Suppress FutureWarnings (optional)
     warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -392,7 +298,6 @@ def argparser():
 
 
 if __name__ == "__main__":
-
     # Parse arguments
     args = argparser()
 
@@ -479,18 +384,6 @@ if __name__ == "__main__":
     )
 
     # generate figures
-
-    # corner plot (scatter matrix)
-    scatter_matrix(
-        n_dim,
-        samples,
-        METHODS,
-        ALGOS,
-        savedir,
-        f"curve_corner_{n_dim}d_kappa{int(kappa)}",
-        savefig=True,
-    )
-
     acf_geodist_plot(
         samples,
         METHODS,
