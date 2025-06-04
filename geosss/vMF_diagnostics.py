@@ -10,11 +10,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from arviz import autocorr
 from csb.io import dump, load
 
 from geosss.distributions import MarginalVonMisesFisher, MixtureModel, VonMisesFisher
 from geosss.sphere import distance
-from geosss.utils import acf
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
 ALGOS = {
@@ -82,6 +84,8 @@ def hist_plot_mixture_marginals(
     bins = 100
     plt.rc("font", size=fs)
 
+    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
+
     # shows a standard histogram per dimension
     if ndim == 3:
         figsize = (10, 10)
@@ -98,7 +102,6 @@ def hist_plot_mixture_marginals(
     t = np.linspace(-1.0, 1.0, 1000)
 
     for d_idx, axes in enumerate(rows):
-
         # mixture of the marginals of von Mises-Fisher as ground truth samples
         marginalvMFs = [MarginalVonMisesFisher(d_idx, mu) for mu in mus]
         mixture_marginalvMFs = MixtureModel(marginalvMFs)
@@ -112,11 +115,11 @@ def hist_plot_mixture_marginals(
                 marginals,
                 bins=bins,
                 density=True,
-                alpha=0.3,
-                color="k",
+                alpha=0.5,
+                color=colors[METHODS.index(method)],
                 histtype="stepfilled",
             )[1]
-            ax.plot(t, prob_truth, ls="--", c="r", lw=1)
+            ax.plot(t, prob_truth, ls="--", c="k", lw=1)
             ax.set_xlabel(rf"$e_{d_idx}^Tx_n$", fontsize=fs)
 
     for ax, method in zip(rows[0], METHODS):
@@ -145,11 +148,11 @@ def trace_plots(samples, ndim, path, filename, fs=16, save_res=False):
             ax.plot(samples[method][:, d], alpha=0.5, color="k", lw=1)
             ax.set_xlabel(r"MCMC step $n$", fontsize=fs)
         axes[0].set_ylabel(r"$u_{d}^Tx_n$", fontsize=fs)
-        fig.suptitle(rf"Trace plot $d_{{{d+1}}}$")
+        fig.suptitle(rf"Trace plot $d_{{{d + 1}}}$")
         if save_res:
-            print(f"saving trace plot for dimension {d+1}..")
+            print(f"saving trace plot for dimension {d + 1}..")
             fig.savefig(
-                f"{path}/trace_plots/{filename}_trace_d{d+1}.pdf", transparent=True
+                f"{path}/trace_plots/{filename}_trace_d{d + 1}.pdf", transparent=True
             )
 
         plt.close(fig)
@@ -166,16 +169,18 @@ def acf_plots(samples, ndim, path, filename, lag=1000, fs=16, save_res=False):
         fig, ax = plt.subplots(1, 1, figsize=(6, 5))
 
         for method in METHODS:
-            ac = acf(samples[method][:, d], lag)
+            ac = autocorr(samples[method][:, d])[:lag]
             ax.plot(ac, alpha=0.7, lw=3, label=ALGOS[method])
             ax.legend(fontsize=fs)
             ax.axhline(0.0, ls="--", color="k", alpha=0.7)
             ax.set_xlabel(r"Lag", fontsize=fs)
             ax.set_ylabel("ACF", fontsize=fs)
-            ax.set_title(rf"$d_{{{d+1}}}$")
+            ax.set_title(rf"$d_{{{d + 1}}}$")
         if save_res:
-            print(f"saving acf plots for dim {d+1}..")
-            fig.savefig(f"{path}/acf_plots/{filename}_acf_d{d+1}.pdf", transparent=True)
+            print(f"saving acf plots for dim {d + 1}..")
+            fig.savefig(
+                f"{path}/acf_plots/{filename}_acf_d{d + 1}.pdf", transparent=True
+            )
 
         plt.close(fig)
 
@@ -204,7 +209,7 @@ def acf_entropy_plot(samples, pdf, path, filename, lag=1000, fs=16, save_res=Fal
     fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     ax = axes[0]
     for method in METHODS:
-        ac = acf(samples[method][:, 0], lag)
+        ac = autocorr(samples[method][:, 0])[:lag]
         ax.plot(ac, alpha=0.7, lw=3, label=ALGOS[method])
     ax.legend(fontsize=fs)
     ax.axhline(0.0, ls="--", color="k", alpha=0.7)
@@ -319,6 +324,9 @@ def acf_kld_dist_plot(samples, pdf, path, filename, lag=80000, fs=16, save_res=F
     """
     warnings.filterwarnings("ignore", category=FutureWarning)
 
+    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
+    method_color_dict = dict(zip(METHODS, colors))
+
     # population of modes
     modes = np.array([p.mu for p in pdf.pdfs])
 
@@ -335,9 +343,15 @@ def acf_kld_dist_plot(samples, pdf, path, filename, lag=80000, fs=16, save_res=F
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     ax = axes[0]
-    for method in METHODS:
-        ac = acf(samples[method][:, 0], lag)
-        ax.plot(ac, alpha=0.7, lw=3, label=ALGOS[method])
+    for method, color in zip(METHODS, colors):
+        ac = autocorr(samples[method][:, 0])[:lag]
+        ax.plot(
+            ac,
+            alpha=0.7,
+            lw=3,
+            label=ALGOS[method],
+            color=color,
+        )
     ax.axhline(0.0, ls="--", color="k", alpha=0.7)
     ax.set_xlabel(r"Lag", fontsize=fs)
     ax.set_ylabel("ACF", fontsize=fs)
@@ -347,7 +361,14 @@ def acf_kld_dist_plot(samples, pdf, path, filename, lag=80000, fs=16, save_res=F
     # KL divergence
     ax2 = axes[1]
     ax2.set_ylabel("KL divergence")
-    ax2.bar(list(map(ALGOS.get, METHODS)), KL, color="k", alpha=0.3)
+    ax2.bar(
+        list(map(ALGOS.get, METHODS)),
+        KL,
+        color=colors,
+        alpha=0.5,
+        edgecolor=colors,
+        linewidth=2,
+    )
     ax2.tick_params(axis="x", labelrotation=30)
     ax2.tick_params(axis="both", labelsize=fs)
 
@@ -393,7 +414,7 @@ def acf_kld_dist_plot(samples, pdf, path, filename, lag=80000, fs=16, save_res=F
         linewidth=1.5,  # Adjust line width for better visibility
         alpha=0.3,
         ax=ax3,
-        # palette=method_color_dict,
+        palette=method_color_dict,
         legend=True,  # Ensure legend is enabled
     )
 
@@ -465,7 +486,7 @@ def calc_ess(runs_samples, methods, path, return_ess=True):
 
     for method in methods:
         for i, vals in enumerate(ess[method]):
-            print(f"{method} ESS dim {i+1}: {vals:.8%}")
+            print(f"{method} ESS dim {i + 1}: {vals:.8%}")
 
     if return_ess:
         return ess
