@@ -35,7 +35,7 @@ def argparser():
     parser.add_argument(
         "--burnin",
         type=float,
-        default=0.0,
+        default=0.2,
         help="Fraction of burn-in samples per sampler (default: 0.0)",
     )
 
@@ -167,7 +167,7 @@ class SamplerLauncher:
             self.initial,
             self.seed,
             stepsize=stepsize,
-            n_steps=50,
+            n_steps=10,
         )
         self.hmc = sampler
 
@@ -438,9 +438,6 @@ def plot_avg_sampler_run_times(log_folder, methods, return_times=False):
         for sampler, times in sampler_times.items()
     }
 
-    if return_times:
-        return list(average_times.values())
-
     # Print results
     print("Average times for each sampler:")
     for sampler, avg_time in average_times.items():
@@ -457,93 +454,84 @@ def plot_avg_sampler_run_times(log_folder, methods, return_times=False):
 
     fig.savefig(f"{log_folder}/protein_reg3d3d_run_times.png", dpi=200)
 
+    if return_times:
+        return average_times
+
 
 def compute_and_plot_sampler_success(
-    logprobs_chains, methods, savedir, criteria, n_samples
+    logprobs_chains: dict,
+    methods: list[str],
+    savedir: str,
+    success_threshold: float,
+    n_samples: int,
+    run_times: dict | None = None,
+    use_time_axis: bool = False,
 ):
-    # create success criteria (5% of max log prob)
+    """
+    Core function to compute and plot sampler success rates.
 
-    print(f"success criteria {criteria: .2f}")
+    Parameters:
+    - use_time_axis: If True, plots against computation time; if False, against MCMC iterations
+    """
+    print(f"success threshold criteria {success_threshold: .2f}")
     print("=============")
+
+    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
+    algos = {
+        "sss-reject": "geoSSS (reject)",
+        "sss-shrink": "geoSSS (shrink)",
+        "rwmh": "RWMH",
+        "hmc": "HMC",
+    }
 
     fig, ax = plt.subplots(1, 1, figsize=(12, 5))
     n_step = 10  # every 10 samples
     n_complete = (n_samples // n_step) * n_step
+
     for method in methods:
-        # computing mean for every consecutive 10 samples
-        samples_truncated = logprobs_chains[method][:, :n_complete]
-        samples_mean_every_nstep = np.mean(
-            samples_truncated.reshape(-1, n_samples // n_step, n_step), axis=2
-        )
-
-        # samples greater than the threshold
-        success_rate = samples_mean_every_nstep > criteria
-        success_rate_over_chains = np.mean(success_rate, axis=0)
-        print(f"Success rate for {method}: {success_rate_over_chains}")
-        x = np.linspace(0, n_samples, n_samples // n_step)
-        y = success_rate_over_chains * 100
-        ax.scatter(
-            x,
-            y,
-            s=10,
-            marker="o",
-            label=method,
-        )
-        ax.plot(x, y, ls="--")
-        ax.set_title("Success rate of samples")
-        ax.set_xlabel("MCMC iterations")
-        ax.set_ylabel("success rate [%]")
-        ax.legend()
-
-    fig.savefig(f"{savedir}/protein_reg3d3d_success_rate.png", dpi=200)
-
-
-def compute_and_plot_sampler_success_times(
-    logprobs_chains,
-    methods,
-    savedir,
-    criteria,
-    n_samples,
-):
-    # create success criteria (5% of max log prob)
-
-    print(f"success criteria {criteria: .2f}")
-    print("=============")
-    times = plot_avg_sampler_run_times(savedir, methods, return_times=True)
-
-    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
-    n_step = 10  # every 10 samples
-    n_complete = (n_samples // n_step) * n_step
-    for i, method in enumerate(methods):
-        # computing mean for every consecutive 10 samples
+        # Computing mean for every consecutive 10 samples
         logprobs_truncated = logprobs_chains[method][:, :n_complete]
         logprobs_mean_every_nstep = np.mean(
             logprobs_truncated.reshape(-1, n_samples // n_step, n_step), axis=2
         )
 
-        # samples greater than the threshold
-        success_rate = logprobs_mean_every_nstep > criteria
+        # Samples greater than the threshold
+        success_rate = logprobs_mean_every_nstep > success_threshold
         success_rate_over_chains = np.mean(success_rate, axis=0)
-        print(f"Success rate for {method}: {success_rate_over_chains}")
-        x = np.linspace(0, 1, n_samples // n_step) * times[i]
+
+        # Calculate x-axis values
+        if use_time_axis and run_times is not None:
+            x = np.linspace(0, 1, n_samples // n_step) * run_times[method]
+            xlabel = "Computation time [s]"
+            filename = "protein_reg3d3d_success_rate_times.png"
+        else:
+            x = np.linspace(0, n_samples, n_samples // n_step)
+            xlabel = "MCMC iterations"
+            filename = "protein_reg3d3d_success_rate.png"
+
         y = success_rate_over_chains * 100
+
         ax.scatter(
             x,
             y,
             s=10,
             marker="o",
-            label=method,
+            label=algos[method],
+            color=colors[methods.index(method)],
         )
         ax.plot(x, y, ls="--")
-        ax.set_title("Success rate of samples")
-        ax.set_xlabel("Computation time [s]")
-        ax.set_ylabel("success rate [%]")
-        ax.legend()
-        ax.set_xlim(0, times[1])
 
-    plt.show()
+    ax.set_title("Success rate of samples")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("success rate [%]")
+    ax.legend()
 
-    fig.savefig(f"{savedir}/protein_reg3d3d_success_rate_times.png", dpi=200)
+    # Set x-axis limit for time-based plots
+    if use_time_axis:
+        ax.set_xlim(0, run_times["sss-shrink"])
+        plt.show()
+
+    fig.savefig(f"{savedir}/{filename}", dpi=200)
 
 
 if __name__ == "__main__":
@@ -631,9 +619,9 @@ if __name__ == "__main__":
             seed_sequence=48385,
             return_chains=True,
             n_jobs=n_jobs,
-            return_all_samples=False,  # extra `int(burnin * n_samples)` samples will be returned,
-            stepsize_rwmh=0.015,  # Fixed (optimal) value, for automatic tuning, set burnin > 0.0
-            stepsize_hmc=0.012,  # Fixed (optimal) value, for automatic tuning, set burnin > 0.0
+            return_all_samples=True,  # extra `int(burnin * n_samples)` samples will be returned,
+            stepsize_rwmh=1e-1,  # Automatically tuned for initial burnin samples
+            stepsize_hmc=1e-3,  # Automatically tuned for initial burnin samples
         )
 
     # systematic rotational search via 600-cell for generating ground truth
@@ -661,7 +649,6 @@ if __name__ == "__main__":
             log_probs_tesselations = hf["log_probs"][()]
 
     # get the best log prob from tesselations and plot sampler success rate
-    # TODO: Rerun when sampler params are decided to compute success rate
     best_log_prob = log_probs_tesselations.max()
     criteria_threshold = 0.05
     criteria = best_log_prob + criteria_threshold * best_log_prob
@@ -677,25 +664,31 @@ if __name__ == "__main__":
         criteria,
     )
 
-    compute_and_plot_sampler_success_times(
-        logprobs_chains,
-        METHODS,
-        savedir,
-        criteria,
-        n_samples,
-    )
+    # compute average run times extracted from the log files
+    # and plot the average run times for each sampler
+    times = plot_avg_sampler_run_times(savedir, METHODS, return_times=True)
 
-    # NOTE: `n_samples` will not use the last `int(burnin * n_samples)` samples,
-    # if needed, this can be explicitly added to `n_samples`.
-    # See `return_all_samples=True`
+    # compute and plot sampler success rate vs run times (use_time_axis=True)
     compute_and_plot_sampler_success(
         logprobs_chains,
         METHODS,
         savedir,
         criteria,
         n_samples,
+        run_times=times,
+        use_time_axis=True,
+    )
+
+    # compute and plot sampler success rate vs MCMC iterations (use_time_axis=False)
+    # NOTE: this will use the last `int(burnin * n_samples)` samples
+    compute_and_plot_sampler_success(
+        logprobs_chains,
+        METHODS,
+        savedir,
+        criteria,
+        n_samples,
+        use_time_axis=False,  # Plot against MCMC iterations
     )
 
     # plot diagnostics for samplers and store results
     plot_heatmap_logprobs(logprobs_chains, METHODS, savedir)
-    plot_avg_sampler_run_times(savedir, METHODS)
