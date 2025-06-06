@@ -620,7 +620,8 @@ if __name__ == "__main__":
         )
 
     # systematic rotational search via 600-cell for generating ground truth
-    if not os.path.exists(f"{savedir}/log_probs_tesselations.hdf5"):
+    filepath_tesselations = f"{savedir}/log_probs_tesselations.hdf5"
+    if not os.path.exists(filepath_tesselations):
         # Generate rotations for systematic search via 600-cell
         print("Generating rotations for systematic search...")
         quaternions_tesselations = tessellate_rotations(n_discretize=3)
@@ -635,18 +636,18 @@ if __name__ == "__main__":
             if i % 1000 == 0:  # Show progress every 1000 rotations
                 print(f"Evaluated {i}/{len(quaternions_tesselations)} rotations")
 
-        with h5py.File(f"{savedir}/log_probs_tesselations.hdf5", "w") as hf:
+        with h5py.File(filepath_tesselations, "w") as hf:
             hf.create_dataset("quaternions", data=quaternions_tesselations)
             hf.create_dataset("log_probs", data=log_probs_tesselations)
     else:
-        with h5py.File(f"{savedir}/log_probs_tesselations.hdf5", "r") as hf:
+        with h5py.File(filepath_tesselations, "r") as hf:
             quaternions_tesselations = hf["quaternions"][()]
             log_probs_tesselations = hf["log_probs"][()]
 
     # systematic search (600-cell) best output
     q_best = quaternions_tesselations[np.argmax(log_probs_tesselations)]
     R_best = quat2matrix(q_best)
-    print(f"{np.max(log_probs_tesselations):.2f}")
+    print(f"Best log prob for systematic search: {np.max(log_probs_tesselations):.2f}")
 
     # manually set the log prob. threshold for success rate
     threshold = -2300
@@ -694,17 +695,18 @@ if __name__ == "__main__":
     compute_and_plot_sampler_success(
         logprobs_chains,
         success_threshold=-2300,
-        n_samples=2000,  # RWMH uses 6X more samples,
+        n_samples=n_samples,
         run_times=run_times,
         use_time_axis=False,
         ax=axes[-2],
     )
 
     # plot the success rates against computation time
+    # NOTE: RWMH uses 6X more samples to match the time x-axis
     compute_and_plot_sampler_success(
         logprobs_chains,
         success_threshold=-2300,
-        n_samples=2000,  # RWMH uses 6X more samples,
+        n_samples=n_samples,
         run_times=run_times,
         use_time_axis=True,
         ax=axes[-1],
@@ -717,9 +719,10 @@ if __name__ == "__main__":
         ax.annotate(chr(i), xy=(0.01, 0.85), xycoords="axes fraction", fontsize=16)
 
     fig.tight_layout()
-
     fig.savefig(
-        f"{savedir}/plot_protein_registration.pdf", bbox_inches="tight", dpi=300
+        f"{savedir}/plot_protein_registration.pdf",
+        bbox_inches="tight",
+        dpi=300,
     )
 
     # some misc. plots not used in the paper
@@ -734,4 +737,5 @@ if __name__ == "__main__":
 
         # plot diagnostics for samplers and store results
         plot_heatmap_logprobs(logprobs_chains, METHODS)
-        plt.show()
+
+    plt.show()

@@ -204,6 +204,10 @@ class CoherentPointDrift(GaussianMixtureModel):
         super().__init__(target, source, sigma, k, beta=beta)
         self.omega = float(omega)
 
+        # approx. smallest double-precision number
+        # to avoid underflow
+        self.log_eps = 1e-308
+
     @cached_property
     def _log_volume(self):
         """
@@ -231,7 +235,7 @@ class CoherentPointDrift(GaussianMixtureModel):
         log_p_lk = log_w_k + log_phi + self._log_constant
 
         # log outlier term
-        log_outlier = np.log(self.omega + 1e-200) - self._log_volume
+        log_outlier = np.log(self.omega + self.log_eps) - self._log_volume
         outlier_column = np.full((self.target.size, 1), log_outlier)
 
         # Stack Gaussian components with outlier term
