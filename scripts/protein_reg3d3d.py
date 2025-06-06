@@ -8,6 +8,7 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from joblib import Parallel, delayed
+from scipy.special import logsumexp
 
 from geosss import (
     MetropolisHastings,
@@ -15,11 +16,13 @@ from geosss import (
     ShrinkageSphericalSliceSampler,
     SphericalHMC,
 )
-from geosss.pointcloud import PointCloud
+from geosss.pointcloud import PointCloud, quat2matrix
 from geosss.registration import CoherentPointDrift, Registration
-from geosss.sphere import sample_sphere
+from geosss.sphere import sample_sphere, sample_subsphere
 from geosss.sphere_tesselation import tessellate_rotations
 from geosss.utils import take_time
+
+plt.rc("font", size=12)
 
 
 def argparser():
@@ -410,7 +413,9 @@ def plot_hist_logprobs(log_probs_C600, logprobs_chains, methods, threshold):
     fig.tight_layout()
 
 
-def plot_avg_sampler_run_times(log_folder, return_times=False):
+def compute_avg_sampler_run_times(log_folder, return_times=False):
+    """Computes average run times for each sampler from all the chains"""
+
     file_pattern = "reg_protein_3d3d_samples_chain"
 
     # Initialize dictionaries to store times
@@ -447,43 +452,47 @@ def plot_avg_sampler_run_times(log_folder, return_times=False):
 
 def compute_and_plot_sampler_success(
     logprobs_chains: dict,
-    methods: list[str],
     success_threshold: float,
     n_samples: int,
     run_times: dict | None = None,
     use_time_axis: bool = False,
+    ax=None,
 ):
     """
-    Core function to compute and plot sampler success rates.
-
-    Parameters:
-    - use_time_axis: If True, plots against computation time; if False, against MCMC iterations
+    computes and plot sampler success rates.
     """
 
-    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
+    # specify some labeling params
+    methods = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
     algos = {
         "sss-reject": "geoSSS (reject)",
         "sss-shrink": "geoSSS (shrink)",
         "rwmh": "RWMH",
         "hmc": "HMC",
     }
+    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
 
-    fig, ax = plt.subplots(1, 1, figsize=(12, 5))
-    n_step = 10  # every 10 samples
+    # Create figure only if ax is not provided
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+        standalone = True
+    else:
+        fig = ax.get_figure()
+        standalone = False
+
+    n_step = 10
     n_complete = (n_samples // n_step) * n_step
 
     for method in methods:
-        # Computing mean for every consecutive 10 samples
+        # Your existing computation code...
         logprobs_truncated = logprobs_chains[method][:, :n_complete]
         logprobs_mean_every_nstep = np.mean(
             logprobs_truncated.reshape(-1, n_samples // n_step, n_step), axis=2
         )
 
-        # Samples greater than the threshold
         success_rate = logprobs_mean_every_nstep > success_threshold
         success_rate_over_chains = np.mean(success_rate, axis=0)
 
-        # Calculate x-axis values
         if use_time_axis and run_times is not None:
             x = np.linspace(0, 1, n_samples // n_step) * run_times[method]
             xlabel = "Computation time [s]"
@@ -503,15 +512,17 @@ def compute_and_plot_sampler_success(
         )
         ax.plot(x, y, ls="--")
 
-    ax.set_title("Success rate of samples")
+    # ax.set_title("Success rate of samples")
     ax.set_xlabel(xlabel)
     ax.set_ylabel("success rate [%]")
     ax.legend()
 
-    # Set x-axis limit for time-based plots
-    if use_time_axis:
+    if use_time_axis and run_times is not None:
         ax.set_xlim(0, run_times["sss-shrink"])
-        plt.show()
+
+    ax.axhline(0.0, ls="--", color="k", alpha=0.3)
+    ax.axhline(100.0, ls="--", color="k", alpha=0.3)
+    return fig if standalone else ax
 
 
 if __name__ == "__main__":
@@ -575,6 +586,10 @@ if __name__ == "__main__":
         k=20,
         omega=omega,
     )
+    print(
+        f"sigma={target_pdf.sigma:.4f}, omega={target_pdf.omega:.2f}, "
+        f"volume={np.exp(target_pdf._log_volume):.3f}"
+    )
 
     # sampling for chains in parallel
     rerun_samplers = False  # Set to True to always rerun samplers
@@ -628,47 +643,95 @@ if __name__ == "__main__":
             quaternions_tesselations = hf["quaternions"][()]
             log_probs_tesselations = hf["log_probs"][()]
 
-    # get the best log prob from tesselations and plot sampler success rate
-    best_log_prob = log_probs_tesselations.max()
-    criteria_threshold = 0.05
-    criteria = best_log_prob + criteria_threshold * best_log_prob
+    # systematic search (600-cell) best output
+    q_best = quaternions_tesselations[np.argmax(log_probs_tesselations)]
+    R_best = quat2matrix(q_best)
+    print(f"{np.max(log_probs_tesselations):.2f}")
 
-    # manually set the criteria for success rate
-    # and plot histograms of log probabilities
-    criteria = -2300
-    print(f"success threshold criteria {criteria: .2f}")
+    # manually set the log prob. threshold for success rate
+    threshold = -2300
+    print(f"success threshold criteria {threshold: .2f}")
 
-    plot_hist_logprobs(
+    # slice through the target density centered around the mode
+    theta = np.linspace(-np.pi / 2, np.pi / 2, 1000, endpoint=False)
+    q = q_best if True else sample_sphere(3)
+    v = sample_subsphere(q, seed=3)
+    s = np.cos(theta[:, None]) * q + np.sin(theta[:, None]) * v
+    slice_logp = np.array(list(map(target_pdf.log_prob, s)))
+    slice_logp -= logsumexp(slice_logp)
+    slice_prob = np.exp(slice_logp - np.max(slice_logp))
+
+    # plot showing the core results
+    fig, axes = plt.subplots(1, 4, figsize=(14, 3))
+
+    # plot the slice
+    ax = axes[0]
+    ax.plot(theta, slice_prob, color="k", alpha=0.7, lw=2)
+    ax.set_xlabel(r"$\theta$")
+    ax.set_ylabel(r"$p(x(\theta))$")
+    ax.set_xticks(np.linspace(theta.min(), theta.max(), 3))
+    ax.set_xticklabels([r"$-\pi/2$", "0", r"$\pi/2$"])
+    ax.semilogy()
+
+    # plot the histogram of log probabilities from tesselations
+    ax = axes[1]
+    hist, bins, *_ = ax.hist(
         log_probs_tesselations,
-        logprobs_chains,
-        METHODS,
-        criteria,
+        bins=500 // 2,
+        color="k",
+        alpha=0.5,
+        density=True,
+        histtype="stepfilled",
     )
+    ax.axvline(threshold, ls="--", color="r", alpha=0.7, lw=1)
+    ax.semilogy()
+    ax.set_xlabel(r"$\log p(x_i)$")
+    ax.set_ylabel(r"counts")
 
-    # compute average run times extracted from the log files
-    # and plot the average run times for each sampler
-    times = plot_avg_sampler_run_times(savedir, return_times=True)
+    run_times = compute_avg_sampler_run_times(log_folder=savedir, return_times=True)
 
-    # compute and plot sampler success rate vs run times (use_time_axis=True)
+    # plot the success rates against MCMC iterations
     compute_and_plot_sampler_success(
         logprobs_chains,
-        METHODS,
-        criteria,
-        n_samples,
-        run_times=times,
+        success_threshold=-2300,
+        n_samples=2000,  # RWMH uses 6X more samples,
+        run_times=run_times,
+        use_time_axis=False,
+        ax=axes[-2],
+    )
+
+    # plot the success rates against computation time
+    compute_and_plot_sampler_success(
+        logprobs_chains,
+        success_threshold=-2300,
+        n_samples=2000,  # RWMH uses 6X more samples,
+        run_times=run_times,
         use_time_axis=True,
+        ax=axes[-1],
     )
 
-    # compute and plot sampler success rate vs MCMC iterations (use_time_axis=False)
-    # NOTE: this will use the last `int(burnin * n_samples)` samples
-    compute_and_plot_sampler_success(
-        logprobs_chains,
-        METHODS,
-        criteria,
-        n_samples,
-        use_time_axis=False,  # Plot against MCMC iterations
+    axes[-1].legend([], frameon=False)
+
+    # annotate every subplot
+    for i, ax in enumerate(axes, 65):
+        ax.annotate(chr(i), xy=(0.01, 0.85), xycoords="axes fraction", fontsize=16)
+
+    fig.tight_layout()
+
+    fig.savefig(
+        f"{savedir}/plot_protein_registration.pdf", bbox_inches="tight", dpi=300
     )
 
-    # plot diagnostics for samplers and store results
-    plot_heatmap_logprobs(logprobs_chains, METHODS)
-    plt.show()
+    # some misc. plots not used in the paper
+    misc_plots = False
+    if misc_plots:
+        plot_hist_logprobs(
+            log_probs_tesselations,
+            logprobs_chains,
+            METHODS,
+            threshold,
+        )
+
+        # plot diagnostics for samplers and store results
+        plot_heatmap_logprobs(logprobs_chains, METHODS)
+        plt.show()
