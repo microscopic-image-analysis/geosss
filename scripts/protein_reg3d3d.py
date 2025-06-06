@@ -356,7 +356,7 @@ def launch_sampling_nchains(
         return all_samples, all_logprob
 
 
-def plot_heatmap_logprobs(logprobs_chains, methods, savedir):
+def plot_heatmap_logprobs(logprobs_chains, methods):
     fig, axes = plt.subplots(2, 2, figsize=(14, 11))
     for ax, method in zip(axes.flat, methods):
         im = ax.imshow(logprobs_chains[method], aspect="auto", cmap="nipy_spectral")
@@ -366,10 +366,9 @@ def plot_heatmap_logprobs(logprobs_chains, methods, savedir):
         plt.colorbar(im, ax=ax)
     fig.suptitle("Log-probabilities for every chain", fontsize=15)
     fig.tight_layout()
-    fig.savefig(f"{savedir}/protein_reg3d3d_logprobs.png", dpi=150)
 
 
-def plot_hist_logprobs(log_probs_C600, logprobs_chains, methods, savedir, threshold):
+def plot_hist_logprobs(log_probs_C600, logprobs_chains, methods, threshold):
     # compare histogram of the log probs for all the methods
     fig, axes = plt.subplots(1, len(methods) + 1, figsize=(16, 3))
     colors = ["blue", "tab:orange", "tab:green", "tab:red"]
@@ -409,10 +408,9 @@ def plot_hist_logprobs(log_probs_C600, logprobs_chains, methods, savedir, thresh
         ax.set_yscale("log")
 
     fig.tight_layout()
-    fig.savefig(f"{savedir}/protein_reg3d3d_hist_logprobs.png", dpi=150)
 
 
-def plot_avg_sampler_run_times(log_folder, methods, return_times=False):
+def plot_avg_sampler_run_times(log_folder, return_times=False):
     file_pattern = "reg_protein_3d3d_samples_chain"
 
     # Initialize dictionaries to store times
@@ -442,17 +440,6 @@ def plot_avg_sampler_run_times(log_folder, methods, return_times=False):
     print("Average times for each sampler:")
     for sampler, avg_time in average_times.items():
         print(f"{sampler}: {avg_time:.2f} s")
-    # Plot the average times for each sampler
-    fig, ax = plt.subplots(figsize=(10, 6))
-    times = list(average_times.values())
-    colors = ["tab:blue", "orange", "tab:green", "tab:red"]
-    ax.bar(methods, times, color=colors)
-    ax.set_title("Average sampler times for 2000 samples")
-    ax.set_xlabel("MCMC sampler")
-    ax.set_ylabel("Average time (s)")
-    fig.tight_layout()
-
-    fig.savefig(f"{log_folder}/protein_reg3d3d_run_times.png", dpi=200)
 
     if return_times:
         return average_times
@@ -461,7 +448,6 @@ def plot_avg_sampler_run_times(log_folder, methods, return_times=False):
 def compute_and_plot_sampler_success(
     logprobs_chains: dict,
     methods: list[str],
-    savedir: str,
     success_threshold: float,
     n_samples: int,
     run_times: dict | None = None,
@@ -473,8 +459,6 @@ def compute_and_plot_sampler_success(
     Parameters:
     - use_time_axis: If True, plots against computation time; if False, against MCMC iterations
     """
-    print(f"success threshold criteria {success_threshold: .2f}")
-    print("=============")
 
     colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
     algos = {
@@ -503,11 +487,9 @@ def compute_and_plot_sampler_success(
         if use_time_axis and run_times is not None:
             x = np.linspace(0, 1, n_samples // n_step) * run_times[method]
             xlabel = "Computation time [s]"
-            filename = "protein_reg3d3d_success_rate_times.png"
         else:
             x = np.linspace(0, n_samples, n_samples // n_step)
             xlabel = "MCMC iterations"
-            filename = "protein_reg3d3d_success_rate.png"
 
         y = success_rate_over_chains * 100
 
@@ -530,8 +512,6 @@ def compute_and_plot_sampler_success(
     if use_time_axis:
         ax.set_xlim(0, run_times["sss-shrink"])
         plt.show()
-
-    fig.savefig(f"{savedir}/{filename}", dpi=200)
 
 
 if __name__ == "__main__":
@@ -656,23 +636,23 @@ if __name__ == "__main__":
     # manually set the criteria for success rate
     # and plot histograms of log probabilities
     criteria = -2300
+    print(f"success threshold criteria {criteria: .2f}")
+
     plot_hist_logprobs(
         log_probs_tesselations,
         logprobs_chains,
         METHODS,
-        savedir,
         criteria,
     )
 
     # compute average run times extracted from the log files
     # and plot the average run times for each sampler
-    times = plot_avg_sampler_run_times(savedir, METHODS, return_times=True)
+    times = plot_avg_sampler_run_times(savedir, return_times=True)
 
     # compute and plot sampler success rate vs run times (use_time_axis=True)
     compute_and_plot_sampler_success(
         logprobs_chains,
         METHODS,
-        savedir,
         criteria,
         n_samples,
         run_times=times,
@@ -684,11 +664,11 @@ if __name__ == "__main__":
     compute_and_plot_sampler_success(
         logprobs_chains,
         METHODS,
-        savedir,
         criteria,
         n_samples,
         use_time_axis=False,  # Plot against MCMC iterations
     )
 
     # plot diagnostics for samplers and store results
-    plot_heatmap_logprobs(logprobs_chains, METHODS, savedir)
+    plot_heatmap_logprobs(logprobs_chains, METHODS)
+    plt.show()
