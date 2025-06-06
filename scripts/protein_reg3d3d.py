@@ -624,7 +624,7 @@ if __name__ == "__main__":
     if not os.path.exists(filepath_tesselations):
         # Generate rotations for systematic search via 600-cell
         print("Generating rotations for systematic search...")
-        quaternions_tesselations = tessellate_rotations(n_discretize=3)
+        quaternions_tesselations = tessellate_rotations(n_discretize=4)
         print(f"Generated {len(quaternions_tesselations)} rotations")
 
         # Evaluate rotations
