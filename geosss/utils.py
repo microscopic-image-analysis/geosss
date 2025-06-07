@@ -12,6 +12,9 @@ from geosss.mcmc import (
     SphericalHMC,
 )
 
+EXP_MIN = -308
+EXP_MAX = +709
+
 LOG_MIN = 1e-308
 LOG_MAX = 1e308
 
@@ -41,6 +44,27 @@ def take_time(desc, mute=False):
     dt = time.process_time() - t0
     if not mute:
         logging.info("{0} took {1}".format(desc, format_time(dt)))
+
+
+def exp(x, x_min=EXP_MIN, x_max=EXP_MAX):
+    """
+    Safe version of exp, clips argument such that overflow does not occur.
+
+    Parameters
+    ----------
+    x : input array or float or int
+    x_min : lower value for clipping
+    x_max : upper value for clipping
+
+    Returns
+    -------
+    numpy array
+    """
+
+    x_min = max(x_min, EXP_MIN)
+    x_max = min(x_max, EXP_MAX)
+
+    return np.exp(np.clip(x, x_min, x_max))
 
 
 def log(x, x_min=LOG_MIN, x_max=LOG_MAX):
