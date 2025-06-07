@@ -716,7 +716,11 @@ if __name__ == "__main__":
 
     # annotate every subplot
     for i, ax in enumerate(axes, 65):
-        ax.annotate(chr(i), xy=(0.01, 0.85), xycoords="axes fraction", fontsize=16)
+        ax.annotate(chr(i), xy=(0.02, 0.905), xycoords="axes fraction", fontsize=16)
+
+        # Add 5% margin on top for showing annotations
+        ymin, ymax = ax.get_ylim()
+        ax.set_ylim(ymin, ymax + 0.07 * (ymax - ymin))
 
     fig.tight_layout()
     fig.savefig(
