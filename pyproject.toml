@@ -15,7 +15,6 @@ python = ">=3.10, <3.13"
 scipy = "^1.11.1"
 numpy = "^1.25.1"
 matplotlib = "^3.7.2"
-csb = "^1.2.5"
 arviz = "^0.20.0"
 tsp-solver = { version = "^0.1"}
 seaborn = { version = "^0.12.2", optional = true }
