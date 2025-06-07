@@ -6,7 +6,7 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from csb.io import dump, load
+from geosss.io import dump, load
 
 METHODS = ("sss-reject", "sss-shrink", "rwmh", "hmc")
 ALGOS = {

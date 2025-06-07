@@ -10,7 +10,7 @@ import pandas as pd
 import scipy.optimize as opt
 import seaborn as sns
 from arviz import autocorr
-from csb.io import dump, load
+from geosss.io import dump, load
 from scipy.spatial import cKDTree
 from scipy.special import logsumexp
 

@@ -3,7 +3,7 @@ import logging
 import os
 
 import numpy as np
-from csb.io import dump, load
+from geosss.io import dump, load
 from joblib import Parallel, delayed
 
 import geosss as gs
@@ -206,7 +206,6 @@ def load_or_launch_samplers(
         # Load the samples from executed runs
         if aggregate_results:
             for i in runs_to_execute:
-
                 # load the samples
                 savepath_samples_i = f"{savepath_samples_base}_run{i}.pkl"
                 savepath_logprob_i = f"{savepath_logprob_base}_run{i}.pkl"
@@ -274,7 +273,6 @@ def argparser():
 
 
 def main():
-
     # Parse arguments
     args = argparser()
 
@@ -340,7 +338,7 @@ def main():
     pdf = CurvedVonMisesFisher(curve, kappa)
 
     methods = ("sss-reject", "sss-shrink", "rwmh", "hmc")
-    
+
     savepath_samples_base = f"{savedir}/curve_samples_{n_dim}d_kappa_{float(kappa)}"
     savepath_logprob_base = f"{savedir}/curve_logprob_{n_dim}d_kappa_{float(kappa)}"
 
@@ -360,5 +358,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     main()

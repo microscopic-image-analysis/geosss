@@ -8,7 +8,7 @@ from contextlib import redirect_stdout
 from functools import partial
 
 import numpy as np
-from csb.io import dump, load
+from geosss.io import dump, load
 
 import geosss as gs
 import geosss.vMF_diagnostics as vis

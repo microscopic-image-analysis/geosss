@@ -4,7 +4,6 @@ import time
 from functools import wraps
 
 import numpy as np
-from csb.numeric import log
 
 from geosss.mcmc import (
     MetropolisHastings,
@@ -12,6 +11,9 @@ from geosss.mcmc import (
     ShrinkageSphericalSliceSampler,
     SphericalHMC,
 )
+
+LOG_MIN = 1e-308
+LOG_MAX = 1e308
 
 # some nice colors
 colors = [
@@ -39,6 +41,22 @@ def take_time(desc, mute=False):
     dt = time.process_time() - t0
     if not mute:
         logging.info("{0} took {1}".format(desc, format_time(dt)))
+
+
+def log(x, x_min=LOG_MIN, x_max=LOG_MAX):
+    """
+    Safe version of log, clips argument such that overflow does not occur.
+
+    Parameters
+    ----------
+    x : input array or float or int
+    x_min : lower value for clipping
+    x_max : upper value for clipping
+    """
+    x_min = max(x_min, LOG_MIN)
+    x_max = min(x_max, LOG_MAX)
+
+    return np.log(np.clip(x, x_min, x_max))
 
 
 def relative_entropy(p, q):

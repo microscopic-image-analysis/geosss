@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from csb.io import dump, load
+from geosss.io import dump, load
 
 import geosss as gs
 from geosss.distributions import CurvedVonMisesFisher, Distribution

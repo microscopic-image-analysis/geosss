@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from arviz import autocorr
-from csb.io import dump, load
+from geosss.io import dump, load
 
 from geosss.distributions import MarginalVonMisesFisher, MixtureModel, VonMisesFisher
 from geosss.sphere import distance

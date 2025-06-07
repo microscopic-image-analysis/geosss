@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from csb.io import load
+from geosss.io import load
 
 METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
 ALGOS = {

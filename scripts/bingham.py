@@ -2,7 +2,7 @@ import os
 
 import arviz as az
 import numpy as np
-from csb.io import dump, load
+from geosss.io import dump, load
 
 import geosss as gs
 
