@@ -6,7 +6,8 @@ import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
-from csb.io import dump, load
+
+from geosss.io import dump, load
 
 METHODS = ("sss-reject", "sss-shrink", "rwmh", "hmc")
 ALGOS = {
@@ -15,7 +16,7 @@ ALGOS = {
     "rwmh": "RWMH",
     "hmc": "HMC",
 }
-plt.rc("font", size=20)
+plt.rc("font", size=11)
 
 
 def load_samples(
@@ -124,7 +125,7 @@ def calc_ess(samples_dict, verbose=False):
         ess_vals[method] = ess
         if verbose:
             for i, val in enumerate(ess.values):
-                print(f"{method} ESS dim {i+1}: {val:.4%}")
+                print(f"{method} ESS dim {i + 1}: {val:.4%}")
 
     return ess_vals
 
@@ -226,97 +227,134 @@ def ess_plot_varying_param(
 
 
 if __name__ == "__main__":
+    # Create a single figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
 
-    plotting_varying_kappa = True
-    plotting_varying_ndim = False
+    # Plot 1: Varying kappa (left subplot)
+    kappas = np.arange(100, 900, 100)
+    n_dim = 5
+    n_runs = 10
+    subdir_kappa = f"results/curve_{n_dim}d_vary_kappa_nruns_{n_runs}"
+    ess_filename_kappa = f"ess_curve_{n_dim}d_varying_kappa.pkl"
+    ess_filepath_kappa = os.path.join(subdir_kappa, ess_filename_kappa)
+    recompute_ess = False
 
-    if plotting_varying_kappa:
-        # parameters for loading samples and calculating ESS
-        kappas = np.arange(100, 900, 100)
-        n_dim = 5
-        n_runs = 10
-        subdir = f"results/curve_{n_dim}d_vary_kappa_nruns_{n_runs}"
-        ess_filename = f"ess_curve_{n_dim}d_varying_kappa.pkl"
-        ess_filepath = os.path.join(subdir, ess_filename)
-        recompute_ess = False
-
-        # load or calculate ESS
-        if not recompute_ess and os.path.exists(ess_filepath):
-            print("Loading ESS values from the file...")
-            ess_kappas = load(ess_filepath)
-        else:
-            # load samples for varying kappa
-            print(f"Loading samples for varying kappa from {subdir}...")
-            datasets_varying_kappa = load_samples(
-                base_path=subdir,
-                varying_param_values=kappas,
-                varying_param_name="kappa",
-                fixed_params={"n_dim": n_dim},
-                n_runs=n_runs,
-                verbose=True,
-            )
-
-            # calculate ESS
-            ess_kappas = calc_ess_varying_param(
-                param_values=kappas,
-                datasets=datasets_varying_kappa,
-                ess_filepath=ess_filepath,
-                verbose=True,
-            )
-
-        # plotting
-        fig = ess_plot_varying_param(
-            ess_vals=ess_kappas,
+    # Load or calculate ESS for varying kappa
+    if not recompute_ess and os.path.exists(ess_filepath_kappa):
+        print("Loading ESS values for varying kappa from file...")
+        ess_kappas = load(ess_filepath_kappa)
+    else:
+        print(f"Loading samples for varying kappa from {subdir_kappa}...")
+        datasets_varying_kappa = load_samples(
+            base_path=subdir_kappa,
+            varying_param_values=kappas,
+            varying_param_name="kappa",
+            fixed_params={"n_dim": n_dim},
+            n_runs=n_runs,
+            verbose=True,
+        )
+        ess_kappas = calc_ess_varying_param(
             param_values=kappas,
-            param_name=r"concentration parameter $\kappa$",
-            select_dim_idx=0,
-            y_lim_factor=28,
-        )
-        fig.savefig(
-            f"{subdir}/ess_curve_10d_varying_kappa.pdf", transparent=True, dpi=150
+            datasets=datasets_varying_kappa,
+            ess_filepath=ess_filepath_kappa,
+            verbose=True,
         )
 
-    if plotting_varying_ndim:
-        # parameters for loading samples and calculating ESS
-        kappa = 500.0
-        ndims = np.arange(3, 27, 3)
-        n_runs = 10
-        subdir = f"results/curve_kappa_{float(kappa)}_vary_ndim_nruns_{n_runs}"
-        ess_filename = f"ess_curve_kappa_{int(kappa)}_varying_ndim.pkl"
-        ess_filepath = os.path.join(subdir, ess_filename)
-        recompute_ess = False
+    # Plot varying kappa on left subplot
+    ess_single_dim_kappa = {method: [] for method in METHODS}
+    for method in METHODS:
+        for kappa_val in kappas:
+            ess_val = ess_kappas[kappa_val][method][0].values  # select_dim_idx=0
+            ess_single_dim_kappa[method].append(float(ess_val))
 
-        if not recompute_ess and os.path.exists(ess_filepath):
-            print("Loading ESS values from the file...")
-            ess_ndims = load(ess_filepath)
-        else:
-            # load samples for varying n_dim
-            print(f"Loading samples for varying n_dim from {subdir}...")
-            datasets_varying_ndim = load_samples(
-                base_path=subdir,
-                varying_param_values=ndims,
-                varying_param_name="n_dim",
-                fixed_params={"kappa": kappa},
-                n_runs=n_runs,
-                verbose=True,
-            )
+    markers = ["8", "s", "^", "P"]
+    color_palette = sns.color_palette("deep", n_colors=len(METHODS))
+    for i, method in enumerate(METHODS):
+        label = ALGOS[method]
+        ax1.plot(
+            kappas,
+            ess_single_dim_kappa[method],
+            marker=markers[i],
+            markersize=6,
+            label=label,
+            color=color_palette[i],
+        )
 
-            # calculate ESS
-            ess_ndims = calc_ess_varying_param(
-                param_values=ndims,
-                datasets=datasets_varying_ndim,
-                ess_filepath=ess_filepath,
-                verbose=True,
-            )
+    ax1.set_yscale("log")
+    ymin, ymax = ax1.get_ylim()
+    ax1.set_ylim(ymin, ymax * 28)  # y_lim_factor for kappa plot
+    ax1.legend(loc="upper right")
+    ax1.set_xlabel(r"concentration parameter $\kappa$")
+    ax1.set_ylabel("relative ESS (log)")
+    ax1.set_xticks(kappas)
+    ax1.set_xticklabels(kappas)
 
-        # plotting
-        fig = ess_plot_varying_param(
-            ess_vals=ess_ndims,
+    # Plot 2: Varying ndim (right subplot)
+    kappa = 500.0
+    ndims = np.arange(3, 27, 3)
+    n_runs = 10
+    subdir_ndim = f"results/curve_kappa_{float(kappa)}_vary_ndim_nruns_{n_runs}"
+    ess_filename_ndim = f"ess_curve_kappa_{int(kappa)}_varying_ndim.pkl"
+    ess_filepath_ndim = os.path.join(subdir_ndim, ess_filename_ndim)
+
+    # Load or calculate ESS for varying ndim
+    if not recompute_ess and os.path.exists(ess_filepath_ndim):
+        print("Loading ESS values for varying ndim from file...")
+        ess_ndims = load(ess_filepath_ndim)
+    else:
+        print(f"Loading samples for varying n_dim from {subdir_ndim}...")
+        datasets_varying_ndim = load_samples(
+            base_path=subdir_ndim,
+            varying_param_values=ndims,
+            varying_param_name="n_dim",
+            fixed_params={"kappa": kappa},
+            n_runs=n_runs,
+            verbose=True,
+        )
+        ess_ndims = calc_ess_varying_param(
             param_values=ndims,
-            param_name="dimension $d$",
-            select_dim_idx=0,
-            y_lim_factor=13,
+            datasets=datasets_varying_ndim,
+            ess_filepath=ess_filepath_ndim,
+            verbose=True,
         )
-        fig.savefig(
-            f"{subdir}/ess_curve_kappa_{int(kappa)}_varying_ndim.pdf",
+
+    # Plot varying ndim on right subplot
+    ess_single_dim_ndim = {method: [] for method in METHODS}
+    for method in METHODS:
+        for ndim_val in ndims:
+            ess_val = ess_ndims[ndim_val][method][0].values  # select_dim_idx=0
+            ess_single_dim_ndim[method].append(float(ess_val))
+
+    for i, method in enumerate(METHODS):
+        label = ALGOS[method]
+        ax2.plot(
+            ndims,
+            ess_single_dim_ndim[method],
+            marker=markers[i],
+            markersize=6,
+            label=label,
+            color=color_palette[i],
         )
+
+    ax2.set_yscale("log")
+    ymin, ymax = ax2.get_ylim()
+    ax2.set_ylim(ymin, ymax * 13)  # y_lim_factor for ndim plot
+    ax2.set_xlabel("dimension $d$")
+    ax2.set_ylabel("relative ESS (log)")
+    ax2.set_xticks(ndims)
+    ax2.set_xticklabels(ndims)
+
+    for i, ax in enumerate((ax1, ax2), 65):
+        ax.annotate(chr(i), xy=(0.01, 0.92), xycoords="axes fraction", fontsize=16)
+
+    # Adjust layout and save
+    fig.tight_layout()
+
+    # Save the combined figure
+    fig.savefig(
+        "results/ess_curve.pdf",
+        transparent=True,
+        dpi=150,
+    )
+    fig.tight_layout()
+    plt.show()

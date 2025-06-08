@@ -450,22 +450,6 @@ docs = ["arviz (>=0.9)", "ipython", "myst-nb", "pandoc", "sphinx (>=1.7.5)", "sp
 test = ["arviz (>=0.9)", "pytest", "scipy"]
 
 [[package]]
-name = "csb"
-version = "1.2.5"
-description = "Computational Structural Biology Toolbox"
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "csb-1.2.5.zip", hash = "sha256:5acdb655fa290b8b6f0f09faf15bdcefb1795487489c51eba4f57075b92f1a15"},
-]
-
-[package.dependencies]
-matplotlib = "*"
-numpy = "*"
-scipy = "*"
-
-[[package]]
 name = "cycler"
 version = "0.12.1"
 description = "Composable style cycles"
@@ -2125,4 +2109,4 @@ dev = ["black", "corner", "ipykernel", "joblib", "seaborn", "zenodo-get"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10, <3.13"
-content-hash = "0ce4dcfebc570da20afc0d4bed1252343f438707b19a2f7bceb3274201b1573e"
+content-hash = "cdd54df4db48694c3a1cbb2e1c58eed2afc9ec3d0111d943b11146307d741368"

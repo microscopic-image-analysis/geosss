@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 import scipy.optimize as opt
 import seaborn as sns
-from csb.io import dump, load
+from arviz import autocorr
+from geosss.io import dump, load
 from scipy.spatial import cKDTree
 from scipy.special import logsumexp
 
@@ -164,10 +165,22 @@ def calc_kld(pdf, samples, methods, n_saff=1500):
     for method in methods:
         d, i = tree.query(samples[method], k=1)
         j, c = np.unique(i, return_counts=True)
+
+        # Create empirical distribution q
         q = np.zeros_like(p)
-        q[j] = c = c / c.sum()
-        kld.append(np.sum(p * np.log(p) - p * np.log(q + p.min())))
-        print(method, kld[-1])
+        q[j] = c / c.sum()  # Fix: proper assignment
+
+        # Add small epsilon to avoid log(0)
+        eps = 1e-12
+        q_safe = q + eps
+
+        # Standard KL divergence formula: sum(p * log(p/q))
+        # Only sum over points where p > 0 to avoid 0*log(0)
+        mask = p > eps
+        kl_div = np.sum(p[mask] * (np.log(p[mask]) - np.log(q_safe[mask])))
+
+        kld.append(kl_div)
+        print(method, kl_div)
 
     return kld
 
@@ -187,7 +200,7 @@ def acf_kld_plot(
 
     # plotting acf for the first dimension
     for method in methods:
-        ac = gs.acf(samples[method][:, 0], acf_lag)
+        ac = autocorr(samples[method][:, 0])[:acf_lag]
         ax1.plot(ac, alpha=0.7, lw=3, label=algos[method])
     ax1.legend(fontsize=fs)
     ax1.axhline(0.0, ls="--", color="k", alpha=0.7)
@@ -246,7 +259,6 @@ def acf_geodist_kld_plot(
     acf_lag=1000,
     n_saff=1500,
 ):
-
     # Suppress FutureWarnings (optional)
     warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -264,7 +276,7 @@ def acf_geodist_kld_plot(
     ax1 = axes[0]
 
     for method, color in zip(methods, colors):
-        ac = gs.acf(samples[method][:, 0], acf_lag)
+        ac = autocorr(samples[method][:, 0])[:acf_lag]
         ax1.plot(ac, alpha=0.7, lw=3, label=algos[method], color=color)
 
     ax1.axhline(0.0, ls="--", color="k", alpha=0.7)
@@ -522,7 +534,6 @@ def scatter_curve_3d(
 
 
 if __name__ == "__main__":
-
     # Set up argument parsing
     parser = argparse.ArgumentParser(
         description="Process parameters for the curve generation."
@@ -557,7 +568,7 @@ if __name__ == "__main__":
     rerun_if_file_exists = False  # rerun even if file exists
 
     # directory to save results and log info
-    savedir = f"results/vMF_curve_3d_kappa{int(kappa)}"
+    savedir = f"results/curve_3d_kappa{int(kappa)}"
     os.makedirs(savedir, exist_ok=True)
     setup_logging(savedir, kappa)
 
@@ -678,9 +689,9 @@ if __name__ == "__main__":
         fs = 16
         fig, axes = plt.subplots(1, 3, figsize=(12, 4), sharex=True, sharey=True)
         for d, ax in enumerate(axes):
-            ax.set_title(rf"$x_{d+1}$", fontsize=20)
+            ax.set_title(rf"$x_{d + 1}$", fontsize=20)
             for method in methods:
-                ac = gs.acf(samples[method][:, d], 250)
+                ac = autocorr(samples[method][:, d])[:250]
                 ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
             ax.axhline(0.0, ls="--", color="k", alpha=0.7)
             ax.set_xlabel(r"Lag", fontsize=fs)

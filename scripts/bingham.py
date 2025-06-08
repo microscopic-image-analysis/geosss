@@ -1,9 +1,8 @@
 import os
 
 import arviz as az
-import matplotlib.pylab as plt
 import numpy as np
-from csb.io import dump, load
+from geosss.io import dump, load
 
 import geosss as gs
 
@@ -152,120 +151,4 @@ if __name__ == "__main__":
     ind = 0
     samples = runs_samples if isinstance(runs_samples, dict) else runs_samples[ind]
 
-    # plot projections
-    plt.close("all")
-    bins = 100
-    fs = 16
-    vals = samples["kent"] @ pdf.mode
-    ref = list(np.histogram(vals, bins=bins, density=True))
-    ref[1] = 0.5 * (ref[1][1:] + ref[1][:-1])
-    plt.rc("font", size=fs)
-    fig, axes = plt.subplots(
-        1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
-    )
-    for ax, method in zip(axes, methods):
-        ax.set_title(algos[method], fontsize=fs)
-        bins = ax.hist(
-            samples[method] @ pdf.mode,
-            bins=bins,
-            density=True,
-            alpha=0.3,
-            color="k",
-            histtype="stepfilled",
-        )[1]
-        ax.plot(*ref[::-1], color="r", lw=1, ls="--")
-        ax.set_xlabel(r"$u_{d}^Tx_n$", fontsize=fs)
-    fig.tight_layout()
-    if save_figs:
-        fig.savefig(
-            f"{savedir}/bingham_d{d}_vmax{int(vmax)}_hist.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
-
-    # trace plots
-    fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
-    for ax, method in zip(axes, methods):
-        ax.set_title(algos[method], fontsize=fs)
-        ax.plot(samples[method] @ pdf.mode, alpha=0.5, color="k", lw=1)
-        ax.set_xlabel(r"MCMC step $n$", fontsize=fs)
-    axes[0].set_ylabel(r"$u_{d}^Tx_n$", fontsize=fs)
-    fig.tight_layout()
-    if save_figs:
-        fig.savefig(
-            f"{savedir}/bingham_d{d}_vmax{int(vmax)}_trace.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
-
-    fig, axes = plt.subplots(1, 4, figsize=(12, 3), sharex=True, sharey=True)
-    for ax, method in zip(axes, methods):
-        ax.set_title(algos[method], fontsize=fs)
-        ac = gs.acf(samples[method] @ pdf.mode, 1000)
-        ax.plot(ac, alpha=0.7, color="k", lw=3)
-        ax.axhline(0.0, ls="--", color="r", alpha=0.7)
-        ax.set_xlabel(r"Lag", fontsize=fs)
-    axes[0].set_ylabel("ACF", fontsize=fs)
-    fig.tight_layout()
-
-    if save_figs:
-        fig.savefig(
-            f"{savedir}/bingham_d{d}_vmax{int(vmax)}_acf.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
-
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    ax = axes[0]
-    for method in methods:
-        ac = gs.acf(samples[method] @ pdf.mode, 3000)
-        ax.plot(ac, alpha=0.7, lw=3, label=algos[method])
-    ax.legend(fontsize=fs)
-    ax.axhline(0.0, ls="--", color="k", alpha=0.7)
-    ax.set_xlabel(r"Lag", fontsize=fs)
-    ax.set_ylabel("ACF", fontsize=fs)
-    # hopping frequency as bar plot
-    freqs = [hopping_frequency(samples[method], pdf) for method in methods]
-    ax = axes[1]
-    ax.set_ylabel("Hopping frequency")
-    ax.bar(list(map(algos.get, methods)), freqs, color="k", alpha=0.3)
-    # ax.set_ylim(None, 1.0)
-    ax.semilogy()
-    plt.xticks(rotation=30)
-    fig.tight_layout()
-
-    if save_figs:
-        fig.savefig(
-            f"{savedir}/bingham_d{d}_vmax{int(vmax)}_acf_v2.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
-
-    # geodesic distance
-    fig, axes = plt.subplots(
-        1, len(methods), figsize=(len(methods) * 3, 3), sharex=True, sharey=True
-    )
-    bins = 100
-    for ax, method in zip(axes, methods):
-        ax.set_title(algos[method], fontsize=fs)
-        # distance between successive samples
-        x = samples[method]
-        dist = gs.distance(x[:-1], x[1:])
-        print(
-            "average great circle distance of successive samples: "
-            f"{np.mean(dist):.2f} ({method})"
-        )
-        bins = ax.hist(
-            dist, bins=bins, density=True, alpha=0.3, color="k", histtype="stepfilled"
-        )[1]
-        ax.set_xlabel(r"$\delta(x_{n+1}, x_n)$", fontsize=fs)
-        ax.set_xticks(np.linspace(0.0, np.pi, 3))
-        ax.set_xticklabels(["0", r"$\pi/2$", r"$\pi$"])
-    fig.tight_layout()
-
-    if save_figs:
-        fig.savefig(
-            f"{savedir}/bingham_d{d}_vmax{int(vmax)}_dist.pdf",
-            bbox_inches="tight",
-            transparent=True,
-        )
+    # NOTE: For plotting results and conclusions, see `Bingham.ipynb`

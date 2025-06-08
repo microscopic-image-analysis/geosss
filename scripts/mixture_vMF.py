@@ -8,10 +8,10 @@ from contextlib import redirect_stdout
 from functools import partial
 
 import numpy as np
-from csb.io import dump, load
 
 import geosss as gs
 import geosss.vMF_diagnostics as vis
+from geosss.io import dump, load
 
 
 class SamplerLauncher(gs.SamplerLauncher):
@@ -64,21 +64,21 @@ def run_samplers(
     methods: list[str],
     n_samples: int,
     burnin: int,
-    n_runs: int = 1,
+    n_chains: int = 1,
     reprod_switch: bool = True,
 ):
     """Run all the samplers"""
 
-    # generate fixed seeds based on `n_runs`
+    # generate fixed seeds based on `n_chains`
     if reprod_switch:
         ss = np.random.SeedSequence(48385)
-        seeds = ss.spawn(n_runs)
+        seeds = ss.spawn(n_chains)
 
     # start samplers
     runs_samples = []
     runs_logprob = []
-    for i in range(n_runs):
-        print(f"\nRun {i+1}\n-------------------------------")
+    for i in range(n_chains):
+        print(f"\nRun {i + 1}\n-------------------------------")
 
         # fixes seed for initial state and samplers
         seed = seeds[i] if reprod_switch else None
@@ -119,7 +119,15 @@ def run_samplers(
     return runs_samples, runs_logprob
 
 
-def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch):
+def load_or_run(
+    pkl_path,
+    pdf,
+    methods,
+    n_samples,
+    burnin,
+    n_chains,
+    reprod_switch,
+):
     """Loads the samples from memory or runs the sampler"""
 
     pklfile_samples = f"{pkl_path}.pkl.gz"
@@ -144,7 +152,7 @@ def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch
                 methods,
                 n_samples,
                 burnin,
-                n_runs=n_runs,
+                n_chains=n_chains,
                 reprod_switch=reprod_switch,
             )
             runs_samples, runs_logprob = runs
@@ -167,13 +175,13 @@ def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_runs, reprod_switch
             with redirect_stdout(f):
                 runs_samples = start_samplers()
 
-    # load ess results per dimension or compute if n_runs = 10
+    # load ess results per dimension or compute if n_chains = 10
     vis.calc_ess(runs_samples, methods, pkl_path, return_ess=False)
 
     return runs_samples
 
 
-def cli_args(d, K, kappa, n_samples, n_runs):
+def cli_args(d, K, kappa, n_samples, n_chains):
     """
     command-line interface for the given arguments
     """
@@ -181,6 +189,24 @@ def cli_args(d, K, kappa, n_samples, n_runs):
     # parser description
     parser = argparse.ArgumentParser(
         description="Loading dimension (d), Component (K) and concentration parameter (kappa)"
+    )
+
+    parser.add_argument(
+        "-n_samples",
+        "--n_samples",
+        required=False,
+        default=n_samples,
+        help="no. of samples",
+        type=int,
+    )
+
+    parser.add_argument(
+        "-burnin",
+        "--burnin",
+        required=False,
+        default=0.1,
+        help="fraction of burnin samples",
+        type=float,
     )
 
     # parser args
@@ -194,7 +220,7 @@ def cli_args(d, K, kappa, n_samples, n_runs):
     )
     parser.add_argument(
         "-K",
-        "--component",
+        "--components",
         required=False,
         default=K,
         help="no. of components of the mixture model",
@@ -208,24 +234,21 @@ def cli_args(d, K, kappa, n_samples, n_runs):
         help="concentration parameter of vMF",
         type=float,
     )
+
     parser.add_argument(
-        "-n_samples",
-        "--n_samples",
+        "-n_chains",
+        "--n_chains",
         required=False,
-        default=n_samples,
-        help="no. of samples",
-        type=int,
-    )
-    parser.add_argument(
-        "-n_runs",
-        "--n_runs",
-        required=False,
-        default=n_runs,
+        default=n_chains,
         help="no. of runs per sampler",
         type=int,
     )
     parser.add_argument(
-        "-o", "--out_dir", required=False, help="main output directory", default="./"
+        "-o",
+        "--out_dir",
+        required=False,
+        help="main output directory",
+        default="./",
     )
 
     # load args
@@ -243,17 +266,27 @@ def visualize_samples(
     ndim = pdf.pdfs[0].d
 
     vis.acf_kld_dist_plot(
-        samples, pdf, path, filename, lag=acf_lag, fs=16, save_res=save_res
+        samples,
+        pdf,
+        path,
+        filename,
+        lag=acf_lag,
+        fs=16,
+        save_res=save_res,
     )
 
     # plot histogram with mixture of true vMF marginal
     vis.hist_plot_mixture_marginals(
-        pdf, samples, ndim, path, filename, save_res=save_res
+        pdf,
+        samples,
+        ndim,
+        path,
+        filename,
+        save_res=save_res,
     )
 
     # additional-plots (not used in paper)
     if misc_plots:
-
         # geodesic distance
         vis.dist_plot(samples, pdf, kappa, path, filename, save_res=save_res)
 
@@ -281,7 +314,7 @@ def main():
     plot_results = True  # plotting results
     save_results = True  # saving results
     n_samples = int(1e6)  # no. of samples
-    n_runs = 1  # sampler runs (ess only for `n_runs=10`)
+    n_chains = 1  # sampler runs (ess only for `n_chains=10`)
     burnin = int(0.1 * n_samples)  # burnin samples
 
     # set filepaths and filenames
@@ -290,14 +323,15 @@ def main():
     subdir = os.path.join(PATH, filename)
 
     # uses the above params as default for cli args
-    args = cli_args(d, K, kappa, n_samples, n_runs)
+    args = cli_args(d, K, kappa, n_samples, n_chains)
 
     # modified from console
-    d = args["dimension"]
-    K = args["component"]
-    kappa = args["concentration"]
     n_samples = args["n_samples"]
-    n_runs = args["n_runs"]
+    burnin = args["burnin"]
+    n_chains = args["n_chains"]
+    d = args["dimension"]
+    K = args["components"]
+    kappa = args["concentration"]
 
     # update the path if arg specified as command line
     subdir = args["out_dir"] + subdir
@@ -318,7 +352,7 @@ def main():
 
     # load samples or run sampler
     runs_samples = load_or_run(
-        f"{subdir}/{filename}", pdf, methods, n_samples, burnin, n_runs, reprod_switch
+        f"{subdir}/{filename}", pdf, methods, n_samples, burnin, n_chains, reprod_switch
     )
 
     # Loading the first run `ind=0` to generate plots in paper

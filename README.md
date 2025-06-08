@@ -14,8 +14,7 @@
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
-This python package implements two novel tuning-free MCMC algorithms, an **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** to sample from spherical distributions on arbitrary dimensions. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned.
-As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for spherical distributions. To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started, please install the package and follow along with the demo to illustrate the use of the algorithm as given below. 
+This python package implements two novel tuning-free MCMC algorithms to sample from spherical distributions, namely **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler**. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned. As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for challenging targets. To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started, please install the package and follow along with the demo to illustrate the use of the algorithm as given below. 
 
 
 ## Installation
@@ -41,83 +40,64 @@ This demo can be created with the below script.
 import geosss as gs
 import numpy as np
 
-# parameters for mixture of von Mises-Fisher (vMF)
-# distributions
-d = 3                          # required dimension
-K = 3                          # number of mixture components
-kappa = 80.0                   # concentration parameter
-
-# mus (mean directions) of the vMF mixture components
-mus = np.array([[0.86981638, -0.37077248, 0.32549536],
-                [-0.19772391, -0.89279985, -0.40473902],
-                [0.19047726, 0.22240888, -0.95616562]])
-
-# target pdf
-vmfs = [gs.VonMisesFisher(kappa*mu) for mu in mus]
+# Create mixture of von Mises-Fisher distributions
+mus = np.array([[0.87, -0.37, 0.33],
+                [-0.20, -0.89, -0.40],
+                [0.19, 0.22, -0.96]])
+vmfs = [gs.VonMisesFisher(80.0 * mu) for mu in mus]
 pdf = gs.MixtureModel(vmfs)
 
-# sampler parameters
-n_samples = int(1e3)           # no. of samples
-burnin = int(0.1 * n_samples)  # burnin samples
-seed = 3521                    # sampler seed
+# Sampling parameters
+n_samples, burnin = 1000, 100
+init_state = np.array([-0.86, 0.19, -0.47])
+seed = 3521
 
-# initial state of the samplers
-init_state = np.array([-0.86333052,  0.18685286, -0.46877117])
+# Sample with different methods
+samplers = {
+    'sss-reject': gs.RejectionSphericalSliceSampler,
+    'sss-shrink': gs.ShrinkageSphericalSliceSampler,
+    'rwmh': gs.MetropolisHastings,                   
+    'hmc': gs.SphericalHMC
+}
 
-# sampling with the four samplers
-samples = {}
+samples = {name: cls(pdf, init_state, seed).sample(n_samples, burnin) 
+           for name, cls in samplers.items()}
 
-# geoSSS (reject): ideal geodesic slice sampler
-rsss = gs.RejectionSphericalSliceSampler(pdf, init_state, seed)
-samples['sss-reject'] = rsss.sample(n_samples, burnin)
-
-# geoSSS (shrink): shrinkage-based geodesic slice sampler
-ssss = gs.ShrinkageSphericalSliceSampler(pdf, init_state, seed)
-samples['sss-shrink'] = ssss.sample(n_samples, burnin)
-
-# RWMH: random-walk Metropolis Hastings
-rwmh = gs.MetropolisHastings(pdf, init_state, seed)
-samples['rwmh'] = rwmh.sample(n_samples, burnin)
-
-# HMC: Hamiltonian Monte Carlo
-hmc = gs.SphericalHMC(pdf, init_state, seed)
-samples['hmc'] = hmc.sample(n_samples, burnin)
-
-# visualize samples in 3d
+# Visualize results
 gs.compare_samplers_3d(pdf, samples)
 ```
 
 ## Development and Reproducibility
 
-It is preferable to install the package in the development mode for modifications. Additionally, this will also ensure reproducibility of the results from the numerical illustrations section of the [paper](https://doi.org/10.48550/arXiv.2301.08056).
+To reproduce results from the numerical illustrations section of the paper, check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
 
-Clone the repository and navigate to the root of the folder,
+However, first installing the package and it's *locked* dependencies is necessary and can be done as follows:
+
+1. Clone the repository and navigate to the root of the folder,
 
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
 ```
 
-You can now create a virtual environment (with `conda` for example),
+2. You can now create a virtual environment (with `conda` for example),
 
 ```bash
 conda create --name geosss-venv python=3.12 # or python >= 3.10, < 3.13
 conda activate geosss-venv
 ```
 
-The dependencies can be installed in this environment with `pip` as,
+3. The dependencies can be installed in this environment as,
 ```bash
 pip install -r requirements.txt
 pip install -e . --no-deps
 ```
 
-Alternatively, because the `pyproject.toml` file is based on the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is possible to install with `poetry` in the activated `conda` environment.
+Optionally, this can also be done with the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer) as
 
 ```bash
 poetry sync --all-extras
 ```
-
-For reproducing the results in the paper, please check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
 
 ## Citation
 
