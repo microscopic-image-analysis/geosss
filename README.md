@@ -14,8 +14,7 @@
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
-This python package implements two novel tuning-free MCMC algorithms, an **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** to sample from spherical distributions on arbitrary dimensions. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned.
-As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for spherical distributions. To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started, please install the package and follow along with the demo to illustrate the use of the algorithm as given below. 
+This python package implements two novel tuning-free MCMC algorithms to sample from spherical distributions, namely **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler**. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned. As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for challenging targets. To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started, please install the package and follow along with the demo to illustrate the use of the algorithm as given below. 
 
 
 ## Installation
@@ -70,7 +69,9 @@ gs.compare_samplers_3d(pdf, samples)
 
 ## Development and Reproducibility
 
-For installing the package and it's *locked* dependencies, follow the below steps:
+To reproduce results from the numerical illustrations section of the paper, check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
+
+However, first installing the package and it's *locked* dependencies is necessary and can be done as follows:
 
 1. Clone the repository and navigate to the root of the folder,
 
@@ -86,19 +87,17 @@ conda create --name geosss-venv python=3.12 # or python >= 3.10, < 3.13
 conda activate geosss-venv
 ```
 
-3. The dependencies can be installed in this environment with `pip` as,
+3. The dependencies can be installed in this environment as,
 ```bash
 pip install -r requirements.txt
 pip install -e . --no-deps
 ```
 
-Alternatively, because the `pyproject.toml` file is based on the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer), it is possible to install with `poetry` in the activated `conda` environment.
+Optionally, this can also be done with the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer) as
 
 ```bash
 poetry sync --all-extras
 ```
-
-To reproduce results from the numerical illustrations section of the [paper](https://doi.org/10.48550/arXiv.2301.08056), check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
 
 ## Citation
 
