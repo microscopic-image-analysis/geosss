@@ -1873,9 +1873,9 @@ numba = ["numba (>=0.55)"]
 test = ["hypothesis", "packaging", "preliz (>=0.19)", "pytest", "pytest-cov", "scipy (>=1.15)"]
 
 [extras]
-dev = ["black", "corner", "ipykernel", "joblib", "seaborn"]
+dev = ["black", "corner", "ipykernel", "joblib", "matplotlib", "seaborn"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10, <3.13"
-content-hash = "2ef6b98e08c84a536b54db50f9104cfa79d62414ebf69e6f0d2931937dfd3af3"
+content-hash = "379543a337559d9438c54ec45ac3d160a752f0072db40ea519c0bb6bbfd44189"
