@@ -7,6 +7,7 @@ from scipy.special import logsumexp
 
 import geosss as gs
 import tests.testing as testing
+from tests.rand import sample_bingham_3d
 
 pdf = gs.random_bingham(d=3, vmax=10, vmin=0.0, eigensystem=not True)
 
@@ -30,7 +31,7 @@ for z in X.T:
 # run handcrafted sampler
 n_samples = 10000
 burnin = int(0.1 * n_samples)
-x = gs.sample_bingham_3d(pdf, n_samples)
+x = sample_bingham_3d(pdf, n_samples)
 
 # Metropolis-Hastings
 y = testing.metropolis_hastings(

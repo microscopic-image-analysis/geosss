@@ -4,6 +4,7 @@ from scipy.integrate import quad
 from scipy.special import iv
 
 import geosss as gs
+from tests.rand import sample_vMF
 
 
 class MarginalVonMisesFisher(gs.VonMisesFisher):
@@ -34,7 +35,7 @@ if __name__ == "__main__":
     mu = gs.sample_sphere(d - 1)
     pdf = gs.VonMisesFisher(kappa * mu)
     marginals = [MarginalVonMisesFisher(i, pdf.mu) for i in range(d)]
-    x = gs.sample_vMF(pdf, 10_000)
+    x = sample_vMF(pdf, 10_000)
     t = np.linspace(-1.0, 1.0, 1_000)
 
     fig, axes = plt.subplots(d // 5, 5, sharex=True, sharey=True)

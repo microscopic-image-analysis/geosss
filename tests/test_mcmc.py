@@ -4,6 +4,7 @@ import matplotlib.pylab as plt
 import numpy as np
 
 import geosss as gs
+from tests.rand import sample_vMF
 
 n_steps = 10
 n_samples = 10_000
@@ -31,7 +32,7 @@ for name, sampler in samplers.items():
     with gs.take_time(f"{sampler.__class__.__name__}"):
         samples[name] = sampler.sample(n_samples, burnin)
 
-samples["Wood"] = np.array([gs.sample_vMF(target) for _ in range(n_samples)])
+samples["Wood"] = np.array([sample_vMF(target) for _ in range(n_samples)])
 
 # show samples
 hist_kw = dict(density=True, alpha=0.7, color=gs.colors[2])

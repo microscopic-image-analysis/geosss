@@ -3,13 +3,14 @@ import numpy as np
 
 import geosss as gs
 import tests.testing as testing
+from tests.rand import sample_bingham_2d
 
 pdf = gs.random_bingham(d=2, vmax=5, eigensystem=not True)
 theta = np.linspace(0.0, 2 * np.pi, 200, endpoint=False)
 p = np.exp(pdf.log_prob(gs.polar2cartesian(theta)))
 p /= (theta[1] - theta[0]) * p.sum()
 
-x = gs.sample_bingham_2d(pdf, 10000)
+x = sample_bingham_2d(pdf, 10000)
 y = testing.metropolis_hastings(pdf, 50000)[5000::10]
 
 plt.close("all")

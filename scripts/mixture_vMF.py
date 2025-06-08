@@ -23,6 +23,62 @@ from scripts.vMF_diagnostics import (
 )
 
 
+def _rotate_north(u):
+    """
+    Find rotation of u onto north pole [0 ... 0 1].
+    """
+    v = np.zeros_like(u)
+    v[-1] = 1
+
+    U, _, V = np.linalg.svd(np.multiply.outer(v, u))
+
+    R = U @ V
+
+    if np.linalg.det(R) < 0.0:
+        U[:, -1] *= -1
+        R = U @ V
+
+    return R
+
+
+def sample_vMF(pdf, size=1):
+    """
+    Generates a random sample from the von Mises-Fisher distribution using the
+    algorithm proposed by Wood (1994).
+    """
+    assert isinstance(pdf, gs.VonMisesFisher)
+
+    if size > 1:
+        return np.array([sample_vMF(pdf) for _ in range(int(size))])
+
+    p = pdf.d - 1
+    kappa = np.linalg.norm(pdf.mu)
+
+    if np.isclose(kappa, 0.0):
+        return gs.sample_sphere(p)
+
+    u = pdf.mu / kappa
+
+    b0 = (-2 * kappa + (4 * kappa**2 + p**2) ** 0.5) / p
+    x0 = (1 - b0) / (1 + b0)
+    n = kappa * x0 + p * np.log(1 - x0**2)
+
+    while True:
+        Z = np.random.beta(0.5 * p, 0.5 * p)
+        U = np.log(np.random.rand())
+        W = (1 - (1 + b0) * Z) / (1 - (1 - b0) * Z)
+
+        if (kappa * W + p * np.log(1 - x0 * W) - n) >= U:
+            break
+
+    # sample from d-2 sphere
+    v = gs.sample_sphere(p - 1)
+    x = np.append((1 - W**2) ** 0.5 * v, W)
+    R = _rotate_north(u).T
+
+    return R @ x
+
+
 class SamplerLauncher(gs.SamplerLauncher):
     def run_wood(self):
         N = np.random.multinomial(self.n_samples, self.pdf.weights)
