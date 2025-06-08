@@ -34,8 +34,6 @@ We consider a target that is a mixture of von Mises-Fisher distributions on $\ma
 </p>
 
 This demo can be created with the below script.
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microscopic-image-analysis/geosss/blob/main/scripts/demo.ipynb)
 ```python
 import geosss as gs
 import numpy as np
@@ -62,10 +60,8 @@ samplers = {
 
 samples = {name: cls(pdf, init_state, seed).sample(n_samples, burnin) 
            for name, cls in samplers.items()}
-
-# Visualize results
-gs.compare_samplers_3d(pdf, samples)
 ```
+See the notebook [`demo.ipynb`](demo.ipynb) for visualization of the samples.
 
 ## Development and Reproducibility
 
