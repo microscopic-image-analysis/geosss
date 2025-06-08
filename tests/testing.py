@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from . import sphere
+from ..geosss import sphere
 
 # some nice colors
 colors = [
@@ -82,7 +82,7 @@ def metropolis_hastings(
         samples.append(np.copy(x))
         n_acc += int(accept)
 
-    print(f"stepsize: {stepsize}, acceptance rate: {(n_acc/n_samples):.1%}")
+    print(f"stepsize: {stepsize}, acceptance rate: {(n_acc / n_samples):.1%}")
 
     return np.array(samples)
 

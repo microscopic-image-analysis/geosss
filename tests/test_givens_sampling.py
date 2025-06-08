@@ -6,7 +6,7 @@ from arviz import autocorr
 from scipy.special import logsumexp
 
 import geosss as gs
-import geosss.testing as testing
+import tests.testing as testing
 
 pdf = gs.random_bingham(d=3, vmax=10, vmin=0.0, eigensystem=not True)
 

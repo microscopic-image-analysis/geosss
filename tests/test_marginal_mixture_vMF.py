@@ -7,7 +7,6 @@ import geosss as gs
 
 
 class MarginalVonMisesFisher(gs.VonMisesFisher):
-
     def __init__(self, index, mu):
         super().__init__(mu)
         self.index = index
@@ -30,7 +29,6 @@ class MarginalVonMisesFisher(gs.VonMisesFisher):
 
 
 if __name__ == "__main__":
-
     d = 10 * 4
     kappa = 100.0
     mu = gs.sample_sphere(d - 1)

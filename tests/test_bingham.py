@@ -8,7 +8,7 @@ from arviz import autocorr as autocorrelation
 from scipy.special import logsumexp
 
 import geosss as gs
-import geosss.testing as testing
+from tests.testing import sample_slice, slice_sampling, spherical_rejection_sampling
 
 
 def test_rejection_sampling():
@@ -49,7 +49,7 @@ def test_slice_sampling():
 
     X = [np.random.uniform(*bounds)]
     while len(X) < 1e4:
-        X.append(testing.sample_slice(log_prob, X[-1], bounds))
+        X.append(sample_slice(log_prob, X[-1], bounds))
 
     x = np.linspace(*bounds, 1000)
     p = np.exp(k * x**2)
@@ -71,9 +71,9 @@ def test_uniform(d=10, method="bracketing"):
     pdf = gs.random_bingham(d)
     pdf.A *= 0.0
     if method == "bracketing":
-        x = testing.slice_sampling(pdf, 10000)
+        x = slice_sampling(pdf, 10000)
     else:
-        x = testing.spherical_rejection_sampling(pdf, 10000)
+        x = spherical_rejection_sampling(pdf, 10000)
 
     # marginal distribution of x_i on the sphere
     eps = 1e-3
