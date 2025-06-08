@@ -10,8 +10,17 @@ from functools import partial
 import numpy as np
 
 import geosss as gs
-import geosss.vMF_diagnostics as vis
 from geosss.io import dump, load
+from scripts.vMF_diagnostics import (
+    acf_entropy_plot,
+    acf_kld_dist_plot,
+    acf_plots,
+    calc_ess,
+    dist_plot,
+    entropy_kld,
+    hist_plot_mixture_marginals,
+    trace_plots,
+)
 
 
 class SamplerLauncher(gs.SamplerLauncher):
@@ -176,7 +185,7 @@ def load_or_run(
                 runs_samples = start_samplers()
 
     # load ess results per dimension or compute if n_chains = 10
-    vis.calc_ess(runs_samples, methods, pkl_path, return_ess=False)
+    calc_ess(runs_samples, methods, pkl_path, return_ess=False)
 
     return runs_samples
 
@@ -265,7 +274,7 @@ def visualize_samples(
     # modes of a mixture model
     ndim = pdf.pdfs[0].d
 
-    vis.acf_kld_dist_plot(
+    acf_kld_dist_plot(
         samples,
         pdf,
         path,
@@ -276,7 +285,7 @@ def visualize_samples(
     )
 
     # plot histogram with mixture of true vMF marginal
-    vis.hist_plot_mixture_marginals(
+    hist_plot_mixture_marginals(
         pdf,
         samples,
         ndim,
@@ -288,21 +297,19 @@ def visualize_samples(
     # additional-plots (not used in paper)
     if misc_plots:
         # geodesic distance
-        vis.dist_plot(samples, pdf, kappa, path, filename, save_res=save_res)
+        dist_plot(samples, pdf, kappa, path, filename, save_res=save_res)
 
         # ACF and entropy plots
-        vis.acf_entropy_plot(
-            samples, pdf, path, filename, lag=acf_lag, save_res=save_res
-        )
+        acf_entropy_plot(samples, pdf, path, filename, lag=acf_lag, save_res=save_res)
 
         # entropy and kl-divergence plots
-        vis.entropy_kld(samples, pdf, path, filename, save_res=save_res)
+        entropy_kld(samples, pdf, path, filename, save_res=save_res)
 
         # trace plots per dimension
-        vis.trace_plots(samples, ndim, path, filename, save_res=save_res)
+        trace_plots(samples, ndim, path, filename, save_res=save_res)
 
         # ACF plot per dimension
-        vis.acf_plots(samples, ndim, path, filename, lag=acf_lag, save_res=save_res)
+        acf_plots(samples, ndim, path, filename, lag=acf_lag, save_res=save_res)
 
 
 def main():

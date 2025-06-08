@@ -2,9 +2,9 @@ import numpy as np
 import scipy.interpolate as interpolate
 import scipy.optimize as opt
 from scipy.spatial.distance import cdist
-from tsp_solver.greedy import solve_tsp
 
 from geosss import sphere
+from geosss.tsp_solver import solve_tsp
 
 
 def distance_slerp(x, a, b):
