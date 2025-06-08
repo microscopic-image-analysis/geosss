@@ -41,49 +41,30 @@ This demo can be created with the below script.
 import geosss as gs
 import numpy as np
 
-# parameters for mixture of von Mises-Fisher (vMF)
-# distributions
-d = 3                          # required dimension
-K = 3                          # number of mixture components
-kappa = 80.0                   # concentration parameter
-
-# mus (mean directions) of the vMF mixture components
-mus = np.array([[0.86981638, -0.37077248, 0.32549536],
-                [-0.19772391, -0.89279985, -0.40473902],
-                [0.19047726, 0.22240888, -0.95616562]])
-
-# target pdf
-vmfs = [gs.VonMisesFisher(kappa*mu) for mu in mus]
+# Create mixture of von Mises-Fisher distributions
+mus = np.array([[0.87, -0.37, 0.33],
+                [-0.20, -0.89, -0.40],
+                [0.19, 0.22, -0.96]])
+vmfs = [gs.VonMisesFisher(80.0 * mu) for mu in mus]
 pdf = gs.MixtureModel(vmfs)
 
-# sampler parameters
-n_samples = int(1e3)           # no. of samples
-burnin = int(0.1 * n_samples)  # burnin samples
-seed = 3521                    # sampler seed
+# Sampling parameters
+n_samples, burnin = 1000, 100
+init_state = np.array([-0.86, 0.19, -0.47])
+seed = 3521
 
-# initial state of the samplers
-init_state = np.array([-0.86333052,  0.18685286, -0.46877117])
+# Sample with different methods
+samplers = {
+    'sss-reject': gs.RejectionSphericalSliceSampler,
+    'sss-shrink': gs.ShrinkageSphericalSliceSampler,
+    'rwmh': gs.MetropolisHastings,                   
+    'hmc': gs.SphericalHMC
+}
 
-# sampling with the four samplers
-samples = {}
+samples = {name: cls(pdf, init_state, seed).sample(n_samples, burnin) 
+           for name, cls in samplers.items()}
 
-# geoSSS (reject): ideal geodesic slice sampler
-rsss = gs.RejectionSphericalSliceSampler(pdf, init_state, seed)
-samples['sss-reject'] = rsss.sample(n_samples, burnin)
-
-# geoSSS (shrink): shrinkage-based geodesic slice sampler
-ssss = gs.ShrinkageSphericalSliceSampler(pdf, init_state, seed)
-samples['sss-shrink'] = ssss.sample(n_samples, burnin)
-
-# RWMH: random-walk Metropolis Hastings
-rwmh = gs.MetropolisHastings(pdf, init_state, seed)
-samples['rwmh'] = rwmh.sample(n_samples, burnin)
-
-# HMC: Hamiltonian Monte Carlo
-hmc = gs.SphericalHMC(pdf, init_state, seed)
-samples['hmc'] = hmc.sample(n_samples, burnin)
-
-# visualize samples in 3d
+# Visualize results
 gs.compare_samplers_3d(pdf, samples)
 ```
 
