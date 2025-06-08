@@ -1,4 +1,3 @@
-from .demo_utils import compare_samplers_3d, sphere_pdf
 from .distributions import (
     ACG,
     Bingham,
@@ -16,7 +15,6 @@ from .mcmc import (
     ShrinkageSphericalSliceSampler,
     SphericalHMC,
 )
-from .rand import sample_bingham, sample_bingham_2d, sample_bingham_3d, sample_vMF
 from .sphere import (
     cartesian2polar,
     cartesian2spherical,
@@ -33,7 +31,6 @@ from .sphere import (
 from .utils import IAT, SamplerLauncher, acf, acf_fft, colors, counter, n_eff, take_time
 
 __all__ = [
-    "compare_samplers_3d",
     "sphere_pdf",
     "ACG",
     "Bingham",
