@@ -70,23 +70,23 @@ gs.compare_samplers_3d(pdf, samples)
 
 ## Development and Reproducibility
 
-It is preferable to install the package in the development mode for modifications. Additionally, this will also ensure reproducibility of the results from the numerical illustrations section of the [paper](https://doi.org/10.48550/arXiv.2301.08056).
+For installing the package and it's *locked* dependencies, follow the below steps:
 
-Clone the repository and navigate to the root of the folder,
+1. Clone the repository and navigate to the root of the folder,
 
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
 ```
 
-You can now create a virtual environment (with `conda` for example),
+2. You can now create a virtual environment (with `conda` for example),
 
 ```bash
 conda create --name geosss-venv python=3.12 # or python >= 3.10, < 3.13
 conda activate geosss-venv
 ```
 
-The dependencies can be installed in this environment with `pip` as,
+3. The dependencies can be installed in this environment with `pip` as,
 ```bash
 pip install -r requirements.txt
 pip install -e . --no-deps
@@ -98,7 +98,7 @@ Alternatively, because the `pyproject.toml` file is based on the python package 
 poetry sync --all-extras
 ```
 
-For reproducing the results in the paper, please check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
+To reproduce results from the numerical illustrations section of the [paper](https://doi.org/10.48550/arXiv.2301.08056), check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
 
 ## Citation
 
