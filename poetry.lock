@@ -1878,4 +1878,4 @@ dev = ["black", "corner", "ipykernel", "joblib", "matplotlib", "seaborn"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10, <3.13"
-content-hash = "379543a337559d9438c54ec45ac3d160a752f0072db40ea519c0bb6bbfd44189"
+content-hash = "d4b3ebc7d316fd5a9a80cf817f4551e41dcdbda16c85fbb89daae62bfe74b44b"
