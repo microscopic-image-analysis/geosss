@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+
 from geosss.io import load
 
 METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
@@ -14,7 +15,7 @@ ALGOS = {
     "hmc": "HMC",
 }
 
-plt.rc("font", size=16)
+plt.rc("font", size=11)
 
 
 def get_dataset(d, K, path, kappas):
@@ -79,62 +80,6 @@ def ess_boxplot(d, K, kappas, path, savefig=True):
         savefile = (
             f"{path}/d{d}_K{K}_kappa{kappas.min()}_{kappas.max()}_ess_boxplot.pdf"
         )
-        fig.savefig(savefile, transparent=True)
-
-
-def ess_plot(
-    d: int, K: int, path: str, kappas: np.ndarray, dim: int = 0, savefig: bool = False
-) -> None:
-    """
-    Plotting ess values for a given dimension `dim` amongst `d` dimensions against kappa
-    for all the samplers.
-
-    Args:
-        d (int): dimension of the mixture of vMF
-        K (int): mixture components
-        kappas (float): concentration parameter
-        path (str): results dir
-        dim (int, optional): selecting a dimension to plot. Defaults to 0.
-        savefig (bool, optional): save figure. defaults to True
-
-    """
-
-    # convert the extracted pandas dataframe
-    ess_df = get_dataset(d, K, path, kappas)
-
-    # extract single value for the given `dim` dimension (default=0)
-    ess_vals = {method: [] for method in METHODS}
-    for method in METHODS:
-        for kappa in kappas:
-            ess_val = ess_df.loc[
-                (ess_df["Kappa"] == kappa) & (ess_df["Method"] == ALGOS[method]), "ESS"
-            ].iloc[dim]
-            ess_vals[method].append(ess_val)
-
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    markers = ["8", "s", "^", "P"]
-    color_palette = sns.color_palette("deep", n_colors=len(METHODS))
-    for i, method in enumerate(METHODS):
-        label = ALGOS[method]
-        ax.plot(
-            kappas,
-            ess_vals[method],
-            marker=markers[i],
-            markersize=10,
-            label=label,
-            color=color_palette[i],
-        )
-    ax.set_yscale("log")
-    ax.legend()
-    ax.set_xlabel(r"concentration parameter $\kappa$")
-    ax.set_ylabel("relative ESS (log)")
-
-    # Set the x-tick locations and labels
-    ax.set_xticks(kappas)
-    ax.set_xticklabels(kappas)
-
-    if savefig:
-        savefile = f"{path}/d{d}_K{K}_kappa{kappas.min()}_{kappas.max()}_ess_plot.pdf"
         fig.savefig(savefile, transparent=True)
 
 
@@ -206,7 +151,84 @@ def extract_evals(d, K, kappas, path) -> dict:
     return evals
 
 
-def plot_rejected_samples(d, K, kappas, path, savefig=False):
+def ess_plot(
+    d: int,
+    K: int,
+    path: str,
+    kappas: np.ndarray,
+    dim: int = 0,
+    ax=None,
+) -> None:
+    """
+    Plotting ess values for a given dimension `dim` amongst `d` dimensions against kappa
+    for all the samplers.
+
+    Args:
+        d (int): dimension of the mixture of vMF
+        K (int): mixture components
+        kappas (float): concentration parameter
+        path (str): results dir
+        dim (int, optional): selecting a dimension to plot. Defaults to 0.
+        savefig (bool, optional): save figure. defaults to True
+
+    """
+
+    # Create figure only if ax is not provided
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+        standalone = True
+    else:
+        fig = ax.get_figure()
+        standalone = False
+
+    # convert the extracted pandas dataframe
+    ess_df = get_dataset(d, K, path, kappas)
+
+    # extract single value for the given `dim` dimension (default=0)
+    ess_vals = {method: [] for method in METHODS}
+    for method in METHODS:
+        for kappa in kappas:
+            ess_val = ess_df.loc[
+                (ess_df["Kappa"] == kappa) & (ess_df["Method"] == ALGOS[method]), "ESS"
+            ].iloc[dim]
+            ess_vals[method].append(ess_val)
+
+    # fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    markers = ["8", "s", "^", "P"]
+    color_palette = sns.color_palette("deep", n_colors=len(METHODS))
+    for i, method in enumerate(METHODS):
+        label = ALGOS[method]
+        ax.plot(
+            kappas,
+            ess_vals[method],
+            marker=markers[i],
+            markersize=6,
+            label=label,
+            color=color_palette[i],
+        )
+    ax.set_yscale("log")
+    ax.legend()
+    ax.set_xlabel(r"concentration parameter $\kappa$")
+    ax.set_ylabel("relative ESS (log)")
+
+    # Set the x-tick locations and labels
+    ax.set_xticks(kappas)
+    ax.set_xticklabels(kappas)
+
+    return fig if standalone else ax
+
+
+def plot_rejected_samples(d, K, kappas, path, ax=None):
+    """Plotting the number of rejected samples for slice samplers"""
+
+    # Create figure only if ax is not provided
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(12, 5))
+        standalone = True
+    else:
+        fig = ax.get_figure()
+        standalone = False
+
     methods = METHODS[:2]
     evals = extract_evals(d, K, kappas, path)
 
@@ -221,7 +243,7 @@ def plot_rejected_samples(d, K, kappas, path, savefig=False):
     print(vals_reject)
     print(vals_shrink)
 
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+    # fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     markers = ["8", "s"]
     color_palette = sns.color_palette("deep", 2)
     for i, vals in enumerate([vals_reject, vals_shrink]):
@@ -229,23 +251,19 @@ def plot_rejected_samples(d, K, kappas, path, savefig=False):
             kappas,
             vals,
             marker=markers[i],
-            markersize=10,
+            markersize=6,
             label=ALGOS[methods[i]],
             color=color_palette[i],
         )
     ax.set_xlabel(r"concentration parameter $\kappa$")
     ax.set_ylabel("number of rejections")
-    ax.legend()
+    # ax.legend()
 
     # Set the x-tick locations and labels
     ax.set_xticks(kappas)
     ax.set_xticklabels(kappas)
 
-    if savefig:
-        savefile = (
-            f"{path}/d{d}_K{K}_kappa{kappas.min()}_{kappas.max()}_nrejections.pdf"
-        )
-        fig.savefig(savefile, transparent=True)
+    return fig if standalone else ax
 
 
 if __name__ == "__main__":
@@ -255,7 +273,22 @@ if __name__ == "__main__":
     kappas = np.arange(50, 550, 50)
     path = f"results/mix_vMF_d{d}_K{K}"
 
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+
     # assumes precomputed ess for kappa values between 50 and 500
-    ess_plot(d, K, path, kappas, savefig=True)
-    plot_rejected_samples(d, K, kappas, path, savefig=True)
+    ess_plot(d, K, path, kappas, ax=ax1)
+    ax1.set_ylim(None, 1e-2)
+
+    plot_rejected_samples(d, K, kappas, path, ax=ax2)
+
+    for i, ax in enumerate((ax1, ax2), 65):
+        ax.annotate(chr(i), xy=(0.02, 0.91), xycoords="axes fraction", fontsize=16)
+
+    fig.tight_layout()
+    fig.savefig(
+        f"{path}/mixture_vMF_d{d}_K{K}_kappa50_500_ess_nrejections_plot.pdf",
+        transparent=True,
+        dpi=200,
+    )
+
     plt.show()
