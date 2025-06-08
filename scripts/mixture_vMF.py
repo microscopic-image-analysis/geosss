@@ -119,7 +119,15 @@ def run_samplers(
     return runs_samples, runs_logprob
 
 
-def load_or_run(pkl_path, pdf, methods, n_samples, burnin, n_chains, reprod_switch):
+def load_or_run(
+    pkl_path,
+    pdf,
+    methods,
+    n_samples,
+    burnin,
+    n_chains,
+    reprod_switch,
+):
     """Loads the samples from memory or runs the sampler"""
 
     pklfile_samples = f"{pkl_path}.pkl.gz"
@@ -236,7 +244,11 @@ def cli_args(d, K, kappa, n_samples, n_chains):
         type=int,
     )
     parser.add_argument(
-        "-o", "--out_dir", required=False, help="main output directory", default="./"
+        "-o",
+        "--out_dir",
+        required=False,
+        help="main output directory",
+        default="./",
     )
 
     # load args

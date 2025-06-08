@@ -167,12 +167,12 @@ def _start_sampling(
     return samples, logprob
 
 
-def aggregate_results(n_runs, savepath_samples_base, savepath_logprob_base):
+def aggregate_results(n_chains, savepath_samples_base, savepath_logprob_base):
     """Aggregate results from multiple runs."""
     all_samples = {}
     all_logprob = {}
 
-    for i in range(n_runs):
+    for i in range(n_chains):
         samples_i = load(f"{savepath_samples_base}_run{i}.pkl")
         logprob_i = load(f"{savepath_logprob_base}_run{i}.pkl")
 
@@ -191,7 +191,7 @@ def load_or_launch_samplers(
     savepath_samples_base: str,
     savepath_logprob_base: str,
     reprod_switch: bool = True,
-    n_runs: int = 10,
+    n_chains: int = 10,
     seed_sequence: int = 48385,
     rerun_if_samples_exists: bool = False,
     aggregate_results_flag: bool = False,
@@ -202,12 +202,12 @@ def load_or_launch_samplers(
     # Extract savedir from savepath_samples_base
     savedir = os.path.dirname(savepath_samples_base)
 
-    # Generate fixed seeds based on `n_runs` for reproducibility
+    # Generate fixed seeds based on `n_chains` for reproducibility
     if reprod_switch:
         ss = np.random.SeedSequence(seed_sequence)
-        seeds = ss.spawn(n_runs)
+        seeds = ss.spawn(n_chains)
     else:
-        seeds = [None] * n_runs
+        seeds = [None] * n_chains
 
     # Prepare arguments for each run
     run_args = []
@@ -219,7 +219,7 @@ def load_or_launch_samplers(
     all_samples = {}
     all_logprob = {}
 
-    for i in range(n_runs):
+    for i in range(n_chains):
         seed_sampler = seeds[i]
         seed_initial_state = seeds[i] if initial_state is None else None
         savepath_samples_i = f"{savepath_samples_base}_run{i}.pkl"
@@ -260,7 +260,7 @@ def load_or_launch_samplers(
 
     # Execute runs in parallel if there are any to execute
     if run_args:
-        if n_runs > 1:
+        if n_chains > 1:
             print(f"Starting parallel sampling for {len(run_args)} runs...")
             Parallel(n_jobs=-1)(
                 delayed(_sampler_single_run)(*args) for args in run_args
@@ -459,19 +459,26 @@ def argparser():
         description="Process parameters for the curve generation."
     )
 
-    # Add arguments for kappa and n_samples
-    parser.add_argument(
-        "--kappa",
-        type=float,
-        default=500.0,
-        help="Concentration parameter (default: 500.0)",
-    )
-
     parser.add_argument(
         "--n_samples",
         type=int,
         default=int(1e3),
         help="Number of samples per sampler (default: 1000)",
+    )
+
+    parser.add_argument(
+        "--burnin",
+        type=float,
+        default=0.2,
+        help="Fraction of burn-in samples per sampler (default: 0.0)",
+    )
+
+    parser.add_argument(
+        "--n_chains",
+        required=False,
+        default=1,
+        help="Number of runs per sampler (default: 1 for single run, 10+ for parallel)",
+        type=int,
     )
 
     parser.add_argument(
@@ -481,12 +488,12 @@ def argparser():
         help="Dimension of the curve (default: 10)",
     )
 
+    # Add arguments for kappa and n_samples
     parser.add_argument(
-        "--n_runs",
-        required=False,
-        default=1,
-        help="Number of runs per sampler (default: 1 for single run, 10+ for parallel)",
-        type=int,
+        "--concentration",
+        type=float,
+        default=500.0,
+        help="Concentration parameter (default: 500.0)",
     )
 
     # Add argument for output directory
@@ -517,18 +524,18 @@ def main():
     args = argparser()
 
     # Ensure correct data types
-    n_dim = int(args["dimension"])  # default: 10
-    kappa = float(args["kappa"])  # default: 500
     n_samples = int(args["n_samples"])  # default: 1000
-    n_runs = int(args["n_runs"])  # default: 1
+    burnin = float(args["burnin"])  # burn-in (default: 0.2)
+    n_chains = int(args["n_chains"])  # default: 1
+    n_dim = int(args["dimension"])  # default: 10
+    kappa = float(args["concentration"])  # default: 500
     generate_plots = args["generate_plots"]  # default: False
-    burnin = 0.2 if n_runs > 1 else int(0.1 * n_samples)  # burn-in
 
     # directory to save results
     if args["out_dir"] is not None:
         savedir = args["out_dir"]
     else:
-        if n_runs > 1:
+        if n_chains > 1:
             savedir = f"results/curve_{n_dim}d_kappa_{float(kappa)}"
         else:
             savedir = f"results/curve_{n_dim}d_vary_kappa_nruns_10/curve_{n_dim}d_kappa_{float(kappa)}"
@@ -583,7 +590,7 @@ def main():
 
     methods = METHODS
 
-    if n_runs > 1:
+    if n_chains > 1:
         # Multi-run mode (parallelized)
         setup_logging(savedir, kappa)
 
@@ -598,7 +605,7 @@ def main():
             savepath_samples_base,
             savepath_logprob_base,
             reprod_switch,
-            n_runs,
+            n_chains,
             seed_sequence=48385,
             rerun_if_samples_exists=rerun_if_samples_exists,
             aggregate_results_flag=False,
@@ -606,9 +613,9 @@ def main():
 
         if generate_plots:
             print(
-                "Warning: Plot generation is only supported for single runs (n_runs=1)"
+                "Warning: Plot generation is only supported for single runs (n_chains=1)"
             )
-            print("To generate plots, run with --n_runs 1 --generate_plots")
+            print("To generate plots, run with --n_chains 1 --generate_plots")
 
     else:
         # Single-run mode (with optional plotting)
