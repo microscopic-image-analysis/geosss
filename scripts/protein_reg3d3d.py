@@ -24,6 +24,16 @@ from geosss.utils import take_time
 
 plt.rc("font", size=12)
 
+METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
+ALGOS = {
+    "sss-reject": "geoSSS (reject)",
+    "sss-shrink": "geoSSS (shrink)",
+    "rwmh": "RWMH",
+    "hmc": "HMC",
+    "gibbs": "Gibbs",
+}
+COLORS = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
+
 
 def argparser():
     parser = argparse.ArgumentParser(description="Process parameters for the sampling.")
@@ -462,16 +472,6 @@ def compute_and_plot_sampler_success(
     computes and plot sampler success rates.
     """
 
-    # specify some labeling params
-    methods = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
-    algos = {
-        "sss-reject": "geoSSS (reject)",
-        "sss-shrink": "geoSSS (shrink)",
-        "rwmh": "RWMH",
-        "hmc": "HMC",
-    }
-    colors = ["tab:blue", "tab:orange", "tab:green", "tab:red"]
-
     # Create figure only if ax is not provided
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(12, 5))
@@ -481,15 +481,19 @@ def compute_and_plot_sampler_success(
         standalone = False
 
     n_step = 10
-    n_complete = (n_samples // n_step) * n_step
+    for method in METHODS:
+        # recompute the number of complete samples for time axis
+        if use_time_axis:
+            n_samples = logprobs_chains[method].shape[1]
 
-    for method in methods:
-        # Your existing computation code...
+        n_complete = (n_samples // n_step) * n_step
+
         logprobs_truncated = logprobs_chains[method][:, :n_complete]
         logprobs_mean_every_nstep = np.mean(
             logprobs_truncated.reshape(-1, n_samples // n_step, n_step), axis=2
         )
 
+        # compute success rate
         success_rate = logprobs_mean_every_nstep > success_threshold
         success_rate_over_chains = np.mean(success_rate, axis=0)
 
@@ -501,14 +505,15 @@ def compute_and_plot_sampler_success(
             xlabel = "MCMC iterations"
 
         y = success_rate_over_chains * 100
+        print(f"Success rate for {method}: {y.max():.2f}")
 
         ax.scatter(
             x,
             y,
             s=10,
             marker="o",
-            label=algos[method],
-            color=colors[methods.index(method)],
+            label=ALGOS[method],
+            color=COLORS[METHODS.index(method)],
         )
         ax.plot(x, y, ls="--")
 
@@ -517,8 +522,10 @@ def compute_and_plot_sampler_success(
     ax.set_ylabel("success rate [%]")
     ax.legend()
 
+    xmin, _ = ax.get_xlim()
+
     if use_time_axis and run_times is not None:
-        ax.set_xlim(0, run_times["sss-shrink"])
+        ax.set_xlim(xmin + 29, run_times["sss-shrink"])
 
     ax.axhline(0.0, ls="--", color="k", alpha=0.3)
     ax.axhline(100.0, ls="--", color="k", alpha=0.3)
@@ -696,7 +703,7 @@ if __name__ == "__main__":
         logprobs_chains,
         success_threshold=-2300,
         n_samples=n_samples,
-        run_times=run_times,
+        run_times=None,
         use_time_axis=False,
         ax=axes[-2],
     )
