@@ -13,7 +13,7 @@
 N_SAMPLES=2000
 BURNIN=0.2 # returns all samples after burnin (adapts step-size during burnin)
 N_CHAINS=200
-OUT_DIR="results/protein_reg3d3d_CPD_chains_${N_CHAINS}_rerun" 
+OUT_DIR="results/protein_reg3d3d_CPD_chains_${N_CHAINS}" 
 N_JOBS=${SLURM_CPUS_PER_TASK}
 
 # Now run the Python script with the parallelized sampling

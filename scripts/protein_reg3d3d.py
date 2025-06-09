@@ -556,7 +556,7 @@ if __name__ == "__main__":
         weights=None,
     )
 
-    n_points = len(data["target"])
+    n_points = len(data["source"])
     source_weights = np.full(n_points, 1 / n_points)
     source = PointCloud(
         positions=data["source"],
