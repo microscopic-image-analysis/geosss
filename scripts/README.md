@@ -1,6 +1,6 @@
 ## Script Usage Guide
 
-This guide explains how to reproduce the numerical illustrations from our [paper](https://doi.org/10.48550/arXiv.2301.08056). We recommend downloading the precomputed results from [Zenodo](https://doi.org/10.5281/zenodo.8287302) rather than running all computations from scratch, as many scripts require significant computation time.
+This guide explains how to reproduce the numerical illustrations from our [paper](https://doi.org/10.48550/arXiv.2301.08056). We recommend downloading the precomputed results from [Zenodo](https://doi.org/10.5281/zenodo.15610462) rather than running all computations from scratch, as many scripts require significant computation time.
 
 ### Script Descriptions
 
