@@ -69,7 +69,7 @@ See the notebook [`demo.ipynb`](demo.ipynb) for visualization of the samples.
 
 ## Development and Reproducibility
 
-To reproduce results from the numerical illustrations section of the paper, check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.8287302) and plotted with these scripts.
+To reproduce results from the numerical illustrations section of the paper, check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.15610462) and plotted with these scripts.
 
 However, first installing the package and it's *locked* dependencies is necessary and can be done as follows:
 
