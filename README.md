@@ -14,7 +14,7 @@
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
-This python package implements two novel tuning-free MCMC algorithms to sample from spherical distributions, namely **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler**. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned. As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for challenging targets. To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started, please install the package and follow along with the demo to illustrate the use of the algorithm as given below. 
+This python package implements two novel tuning-free MCMC algorithms to sample from spherical distributions, namely **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler**. The latter being a much faster, but slightly less accurate variant, and therefore recommended for practical applications. The package also includes the implementation of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC) whose step-size parameter is automatically tuned. As shown in our [paper](https://doi.org/10.48550/arXiv.2301.08056), our algorithms have outperformed RWMH and HMC for challenging targets. To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started, please install the package and follow along with the demo to illustrate the use of the algorithm as given below. 
 
 
 ## Installation
@@ -52,8 +52,8 @@ seed = 3521
 
 # Sample with different methods
 samplers = {
-    'sss-reject': gs.RejectionSphericalSliceSampler,
-    'sss-shrink': gs.ShrinkageSphericalSliceSampler,
+    'sss-reject': gs.RejectionSphericalSliceSampler, # very accurate, but slow
+    'sss-shrink': gs.ShrinkageSphericalSliceSampler, # reasonably accurate, but fast
     'rwmh': gs.MetropolisHastings,                   
     'hmc': gs.SphericalHMC
 }
