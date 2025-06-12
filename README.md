@@ -14,7 +14,7 @@
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
-This python package implements two novel tuning-free MCMC algorithms to sample distributions defined on the sphere, by leveraging its underlying manifold geometry. The two samplers namely **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** are implemented. The latter is a much faster, but slightly less accurate variant and therefore recommended for practical use due to its efficiency.  
+This python package implements two novel tuning-free MCMC algorithms to sample distributions defined on the sphere embedded in &#8477;<sup>d</sup>, by leveraging its underlying manifold geometry. The two samplers namely **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** are implemented. The latter is a much faster, but slightly less accurate variant and therefore recommended for practical use due to its efficiency.  
 
 In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC). As demonstrated in our [paper](https://doi.org/10.48550/arXiv.2301.08056), the proposed samplers outperform RWMH and HMC for challenging target distributions. 
 
