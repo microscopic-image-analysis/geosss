@@ -4,7 +4,7 @@ from scipy.integrate import quad
 from scipy.special import iv
 
 import geosss as gs
-from tests.rand import sample_vMF
+from geosss.rand import sample_vMF
 
 
 class MarginalVonMisesFisher(gs.VonMisesFisher):

@@ -7,7 +7,7 @@ from scipy.special import logsumexp
 
 import geosss as gs
 import tests.testing as testing
-from tests.rand import sample_bingham_3d
+from geosss.rand import sample_bingham_3d
 
 pdf = gs.random_bingham(d=3, vmax=10, vmin=0.0, eigensystem=not True)
 

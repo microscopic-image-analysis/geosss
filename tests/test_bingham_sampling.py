@@ -3,7 +3,7 @@ import numpy as np
 
 import geosss as gs
 import tests.testing as testing
-from tests.rand import sample_bingham_2d
+from geosss.rand import sample_bingham_2d
 
 pdf = gs.random_bingham(d=2, vmax=5, eigensystem=not True)
 theta = np.linspace(0.0, 2 * np.pi, 200, endpoint=False)

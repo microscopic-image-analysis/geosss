@@ -1,6 +1,6 @@
 """
-Special-purpose random number generators for the von Mises-Fisher and the Bingham
-distribution.
+Special-purpose random number generators for the von Mises-Fisher (Wood) and the Bingham
+distribution (Kent).
 """
 
 import numpy as np

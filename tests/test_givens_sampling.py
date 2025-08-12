@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from arviz import autocorr
 from scipy.special import logsumexp
-from tests.rand import sample_bingham_3d
+from geosss.rand import sample_bingham_3d
 
 import geosss as gs
 import tests.testing as testing

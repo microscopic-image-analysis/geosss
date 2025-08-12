@@ -2,9 +2,10 @@ import os
 
 import arviz as az
 import numpy as np
-from geosss.io import dump, load
 
 import geosss as gs
+from geosss.io import dump, load
+from geosss.rand import sample_bingham
 
 
 class SamplerLauncher(gs.SamplerLauncher):
@@ -13,7 +14,7 @@ class SamplerLauncher(gs.SamplerLauncher):
     """
 
     def run_kent(self):
-        return gs.sample_bingham(self.pdf.A, self.n_samples)
+        return sample_bingham(self.pdf.A, self.n_samples)
 
     def run(self, method):
         return self.run_kent() if method == "kent" else super().run(method)

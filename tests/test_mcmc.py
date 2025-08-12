@@ -4,7 +4,7 @@ import matplotlib.pylab as plt
 import numpy as np
 
 import geosss as gs
-from tests.rand import sample_vMF
+from geosss.rand import sample_vMF
 
 n_steps = 10
 n_samples = 10_000
