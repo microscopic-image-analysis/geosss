@@ -694,7 +694,7 @@ if __name__ == "__main__":
     ax.axvline(threshold, ls="--", color="r", alpha=0.7, lw=1)
     ax.semilogy()
     ax.set_xlabel(r"$\log p(x_i)$")
-    ax.set_ylabel(r"counts")
+    ax.set_ylabel(r"rel. counts")
 
     run_times = compute_avg_sampler_run_times(log_folder=savedir, return_times=True)
 
