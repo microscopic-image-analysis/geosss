@@ -197,9 +197,8 @@ class MixtureRWMHIndependenceSampler(MetropolisHastings):
         self.alpha = mixing_probability
         self.n_accept = 0
         self.rwmh_counter = 0
-        self.rwmh_stepsize_vals = []
         self.indep_counter = 0
-        self.n_step_size_adapted = 0
+        self.rwmh_stepsize_vals = []
 
     def propose_rwmh(self):
         """RWMH kernel from MetropolisHastings"""
