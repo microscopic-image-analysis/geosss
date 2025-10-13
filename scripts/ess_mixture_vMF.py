@@ -10,7 +10,6 @@ import seaborn as sns
 
 from geosss.io import dump, load
 
-# %%
 METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc", "mix-rwmh-indep"]
 ALGOS = {
     "sss-reject": "geoSSS (reject)",
@@ -101,9 +100,10 @@ def calc_ess_mixture_sampler(d, K, path, kappas):
 
             # Compute relative ESS
             samples_az = az.convert_to_dataset(samples)
-            ess_mix[f"kappa_{kappa}_mixprob_{mix_prob:.1f}"] = float(
-                az.ess(samples_az, relative=True).x.values
-            )
+            print(f"Calculating ESS for kappa = {kappa} and mix_prob ={mix_prob}")
+            ess_mix[f"kappa_{kappa}_mixprob_{mix_prob:.1f}"] = az.ess(
+                samples_az, relative=True
+            ).x.values
 
     return ess_mix
 
