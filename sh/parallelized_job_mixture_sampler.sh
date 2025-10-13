@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition=fat
+#SBATCH --partition=fat,standard
 #SBATCH --time=03-00:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
