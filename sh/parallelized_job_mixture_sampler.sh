@@ -12,7 +12,7 @@
 # Execute the Python script with parameters
 # NOTE: See files `submit_job_*` for submitting multiple jobs. This one is 
 # specifically for `sh/submit_job_mixture_sampler_vMF_varying_kappa`
-poetry run python scripts/mixture_vMF_mixture_sampler.py \
+poetry run python scripts/mixture_vMF_rwmh_indep.py \
     --n_samples $N_SAMPLES \
     --burnin $BURNIN \
     --n_chains $N_CHAINS \
