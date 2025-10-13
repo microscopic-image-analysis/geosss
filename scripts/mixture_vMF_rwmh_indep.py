@@ -1,8 +1,10 @@
 # Runs the mixture sampler `mcmc.MixtureRWMHIndependenceSampler` on the vMF mixture for the fixed parameters:
-# d=10, K=5 and n_chains=10, n_samples=1e6 and burnin=0.2.
+# d=10, K=5, n_chains=10, n_samples=1e6 and burnin=0.2.
 
 # The concentration parameter kappa is sweeped from 50 to 500 in steps of 50 and mixing probability from 0.1 to 1.0
-# in steps of 0.1 via the SLURM script sh/submit_job_mixture_sampler_vMF_varying_kappa.sh
+# in steps of 0.1 via the SLURM script sh/submit_job_mixture_sampler_vMF_varying_kappa.sh.
+
+# The results are saved in results/mix_vMF_d10_K5/mixture_vMF_d10_K5_kappa<kappa>/sampler_mixture_rwmh_indep
 
 import argparse
 import logging
