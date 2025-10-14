@@ -58,6 +58,9 @@ def extract_best_ess_mixture_sampler(path):
         ess_mix = calc_ess_mixture_sampler(d, K, path, kappas)
         dump(ess_mix, ess_filepath_mix)
 
+    print(
+        "-------\nBest ESS values for mixture kernel sampler across varying kappas\n-------"
+    )
     best_ess_mix = {}
     for kappa in kappas:
         # Gather all ESS values for this kappa across mixture probabilities
@@ -75,7 +78,7 @@ def extract_best_ess_mixture_sampler(path):
         best_mix_prob = MIX_PROBS[best_idx]
 
         print(
-            f"Kappa {kappa}: best mean ESS = {mean_ess_vals[best_idx]:.3f} at mix_prob = {best_mix_prob:.1f}"
+            f"Kappa {kappa}: best mean ESS (log) = {np.log(mean_ess_vals[best_idx])} at mix_prob = {best_mix_prob:.1f}"
         )
         best_ess_mix[f"kappa_{kappa}"] = best_ess
 
