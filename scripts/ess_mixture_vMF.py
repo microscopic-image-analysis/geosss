@@ -1,5 +1,3 @@
-# %%
-import os
 import re
 
 import arviz as az
@@ -52,13 +50,12 @@ def get_dataset(d, K, path, kappas):
 
 def extract_best_ess_mixture_sampler(path):
     """Extract best ESS values across mixture probabilities for each kappa."""
-    ess_filepath_mix = f"{path}/ess_mixture_sampler.pkl.gz"
+    ess_filepath_mix = f"{path}/ess_mixture_sampler.pkl"
     try:
-        ess_mix = load(ess_filepath_mix, gzip=True)
+        ess_mix = load(ess_filepath_mix)
     except FileNotFoundError:
         # WARNING: This can take some time if not precomputed.
         ess_mix = calc_ess_mixture_sampler(d, K, path, kappas)
-        os.makedirs(ess_filepath_mix, exist_ok=True)
         dump(ess_mix, ess_filepath_mix)
 
     best_ess_mix = {}
@@ -68,13 +65,17 @@ def extract_best_ess_mixture_sampler(path):
             [ess_mix[f"kappa_{kappa}_mixprob_{mix_prob:.1f}"] for mix_prob in MIX_PROBS]
         )
 
-        # Find best configuration
-        best_idx = np.argmax(ess_vals)
-        best_ess = ess_vals[best_idx]
+        # Average ESS across dimensions for each mixture probability
+        # ess_vals has shape (n_mix_probs, n_dims), we want to average over dimensions
+        mean_ess_vals = np.mean(ess_vals, axis=1)
+
+        # Find best configuration based on mean ESS
+        best_idx = np.argmax(mean_ess_vals)
+        best_ess = ess_vals[best_idx]  # keeping all dims
         best_mix_prob = MIX_PROBS[best_idx]
 
         print(
-            f"Kappa {kappa}: best ESS = {best_ess:.3f} at mix_prob = {best_mix_prob:.1f}"
+            f"Kappa {kappa}: best mean ESS = {mean_ess_vals[best_idx]:.3f} at mix_prob = {best_mix_prob:.1f}"
         )
         best_ess_mix[f"kappa_{kappa}"] = best_ess
 
