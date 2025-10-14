@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=standard
 #SBATCH --job-name="ess_mixture_vMF"
-#SBATCH --time=0-02:00:00
+#SBATCH --time=01-00:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
