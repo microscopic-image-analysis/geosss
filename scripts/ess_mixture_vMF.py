@@ -68,17 +68,13 @@ def extract_best_ess_mixture_sampler(path):
             [ess_mix[f"kappa_{kappa}_mixprob_{mix_prob:.1f}"] for mix_prob in MIX_PROBS]
         )
 
-        # Average ESS across dimensions for each mixture probability
-        # ess_vals has shape (n_mix_probs, n_dims), we want to average over dimensions
-        mean_ess_vals = np.mean(ess_vals, axis=1)
-
-        # Find best configuration based on mean ESS
-        best_idx = np.argmax(mean_ess_vals)
+        # find the best config. considering the first dimension of ESS result
+        best_idx = np.argmax(ess_vals[:, 0])
         best_ess = ess_vals[best_idx]  # keeping all dims
         best_mix_prob = MIX_PROBS[best_idx]
 
         print(
-            f"Kappa {kappa}: best mean ESS (log) = {np.log(mean_ess_vals[best_idx])} at mix_prob = {best_mix_prob:.1f}"
+            f"Kappa {kappa}: best mean ESS (log) = {np.log(ess_vals[:, 0][best_idx])} at mix_prob = {best_mix_prob:.1f}"
         )
         best_ess_mix[f"kappa_{kappa}"] = best_ess
 
@@ -317,9 +313,6 @@ def plot_rejected_samples(d, K, kappas, path, ax=None):
         # normalized over 1e6 samples
         vals_reject.append(evals[kappa]["sss-reject"]["reject"][0] / 1e6)
         vals_shrink.append(evals[kappa]["sss-shrink"]["reject"][0] / 1e6)
-
-    print(vals_reject)
-    print(vals_shrink)
 
     # fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     markers = ["8", "s"]
