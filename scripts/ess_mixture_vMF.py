@@ -14,7 +14,7 @@ ALGOS = {
     "sss-shrink": "geoSSS (shrink)",
     "rwmh": "RWMH",
     "hmc": "HMC",
-    "mix-rwmh-indep": "mixture RWMH - \nIndependence sampler",
+    "mix-rwmh-indep": "mixture-MH",
 }
 MIX_PROBS = np.arange(0.1, 1.1, 0.1)
 
@@ -357,7 +357,8 @@ if __name__ == "__main__":
 
     fig.tight_layout()
     fig.savefig(
-        f"{path}/mixture_vMF_d{d}_K{K}_kappa50_500_ess_nrejections_plot.pdf",
+        # f"{path}/mixture_vMF_d{d}_K{K}_kappa50_500_ess_nrejections_plot.pdf",
+        f"../spherical-slice-sampling/latex/figures/mixture_vMF_d{d}_K{K}_kappa50_500_ess_nrejections_plot.pdf",
         transparent=True,
         dpi=200,
     )
