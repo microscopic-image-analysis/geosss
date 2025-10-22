@@ -6,17 +6,15 @@
 
   [![PyPI](https://img.shields.io/pypi/v/geosss)](https://pypi.org/project/geosss/)
   ![Python 3.9+](https://img.shields.io/badge/python-3.9+-green.svg)
-  [![arXiv](https://img.shields.io/badge/DOI-10.1038%2Fs41586--020--2649--2-blue)](
-  https://doi.org/10.48550/arXiv.2301.08056)
   [![License](https://img.shields.io/badge/License-BSD_3--Clause-purple.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 </div>
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
-This python package implements two novel tuning-free MCMC algorithms to sample distributions defined on the sphere embedded in &#8477;<sup>d</sup>, by leveraging its underlying manifold geometry. The two samplers namely **ideal geodesic slice sampler** based on accept/reject strategy and a **shrinkage-based geodesic slice sampler** are implemented. The latter is a much faster, but slightly less accurate variant and therefore recommended for practical use due to its efficiency.  
+This python package implements the novel and efficient tuning-free MCMC based inference methods to sample distributions defined on the sphere as published in JMLR. This includes the two variants GeoSSS (reject) and GeoSSS (shrink), where the latter is much faster and therefore recommended for practical utility.
 
-In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (RWMH) and Hamiltonian Monte Carlo (HMC). As demonstrated in our [paper](https://doi.org/10.48550/arXiv.2301.08056), the proposed samplers outperform RWMH and HMC for challenging target distributions. 
+In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (Lie et al., 2023) and Hamiltonian Monte Carlo (Lan et al., 2014). As demonstrated in our [paper](https://doi.org/10.48550/arXiv.2301.08056), the proposed samplers outperform RWMH and HMC for several challenging target distributions. 
 
 To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started quickly, install the package and follow along with the demo provided below. 
 
@@ -69,7 +67,7 @@ See the notebook [`demo.ipynb`](demo.ipynb) for visualization of the samples.
 
 ## Development and Reproducibility
 
-To reproduce results from the numerical illustrations section of the paper, check the [scripts](scripts/) directory. Precomputed results can also be downloaded from [Zenodo](https://doi.org/10.5281/zenodo.15610462) and plotted with these scripts.
+To reproduce results from the numerical illustrations section of the paper, check the [scripts](scripts/) directory. Precomputed results can also be downloaded from the [Science Data Bank](https://doi.org/10.57760/sciencedb.30181) and used with these scripts.
 
 However, first installing the package and it's *locked* dependencies is necessary and can be done as follows:
 
@@ -87,16 +85,10 @@ conda create --name geosss-venv python=3.12 # or python >= 3.10, < 3.13
 conda activate geosss-venv
 ```
 
-3. The dependencies can be installed in this environment as,
+3. The dependencies can now be installed in this environment as,
 ```bash
 pip install -r requirements.txt
 pip install -e . --no-deps
-```
-
-Optionally, this can also be done with the python package manager [Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer) as
-
-```bash
-poetry sync --all-extras
 ```
 
 ## Citation
