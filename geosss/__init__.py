@@ -11,6 +11,7 @@ from .distributions import (
 )
 from .mcmc import (
     MetropolisHastings,
+    MixtureRWMHIndependenceSampler,
     RejectionSphericalSliceSampler,
     ShrinkageSphericalSliceSampler,
     SphericalHMC,
@@ -42,6 +43,7 @@ __all__ = [
     "VonMisesFisher",
     "random_bingham",
     "MetropolisHastings",
+    "MixtureRWMHIndependenceSampler",
     "RejectionSphericalSliceSampler",
     "ShrinkageSphericalSliceSampler",
     "SphericalHMC",

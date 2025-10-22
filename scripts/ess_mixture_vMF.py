@@ -1,30 +1,44 @@
 import re
 
+import arviz as az
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from geosss.io import load
+from geosss.io import dump, load
 
-METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc"]
+METHODS = ["sss-reject", "sss-shrink", "rwmh", "hmc", "mix-rwmh-indep"]
 ALGOS = {
     "sss-reject": "geoSSS (reject)",
     "sss-shrink": "geoSSS (shrink)",
     "rwmh": "RWMH",
     "hmc": "HMC",
+    "mix-rwmh-indep": "mixture-MH",
 }
+MIX_PROBS = np.arange(0.1, 1.1, 0.1)
 
 plt.rc("font", size=11)
 
 
 def get_dataset(d, K, path, kappas):
+    """Load ess values and convert to dataframe."""
+
+    # extract best ESS values for mixture sampler for every kappa
+    ess_mixture_sampler = extract_best_ess_mixture_sampler(path)
+
     # create a list[dict] for values
     datasets = []
     for kappa in kappas:
         subdir = f"mixture_vMF_d{d}_K{K}_kappa{kappa}"
         ess_file = f"{path}/{subdir}/{subdir}_ess.pkl.gz"
         ess = load(ess_file, gzip=True)
+
+        # TODO: Load the best ESS value from the mixture sampler and also
+        # convert to dataframe and combine with the ess dict from above
+        ess["mix-rwmh-indep"] = ess_mixture_sampler[f"kappa_{kappa}"]
+
+        # return a pandas dataframe
         for method in METHODS:
             for ess_val in ess[method]:
                 datasets.append(
@@ -32,6 +46,66 @@ def get_dataset(d, K, path, kappas):
                 )
 
     return pd.DataFrame(datasets)
+
+
+def extract_best_ess_mixture_sampler(path):
+    """Extract best ESS values across mixture probabilities for each kappa."""
+    ess_filepath_mix = f"{path}/ess_mixture_sampler.pkl"
+    try:
+        ess_mix = load(ess_filepath_mix)
+    except FileNotFoundError:
+        # WARNING: This can take some time if not precomputed.
+        ess_mix = calc_ess_mixture_sampler(d, K, path, kappas)
+        dump(ess_mix, ess_filepath_mix)
+
+    print(
+        "-------\nBest ESS values for mixture kernel sampler across varying kappas\n-------"
+    )
+    best_ess_mix = {}
+    for kappa in kappas:
+        # Gather all ESS values for this kappa across mixture probabilities
+        ess_vals = np.array(
+            [ess_mix[f"kappa_{kappa}_mixprob_{mix_prob:.1f}"] for mix_prob in MIX_PROBS]
+        )
+
+        # find the best config. considering the first dimension of ESS result
+        best_idx = np.argmax(ess_vals[:, 0])
+        best_ess = ess_vals[best_idx]  # keeping all dims
+        best_mix_prob = MIX_PROBS[best_idx]
+
+        print(
+            f"Kappa {kappa}: best mean ESS (log) = {np.log(ess_vals[:, 0][best_idx])} at mix_prob = {best_mix_prob:.1f}"
+        )
+        best_ess_mix[f"kappa_{kappa}"] = best_ess
+
+    return best_ess_mix
+
+
+def calc_ess_mixture_sampler(d, K, path, kappas):
+    """
+    Calculate ESS values for mixture sampler across all kappa and mixture probability values.
+
+    WARNING: This can take time to run if files are not cached!
+    """
+    ess_mix = {}
+    for kappa in kappas:
+        for mix_prob in MIX_PROBS:
+            # Construct file path
+            filename = f"sampler_mixture_rwmh_indep_kappa{float(kappa)}_mixprob_{mix_prob:.1f}.pkl.gz"
+            filepath = f"{path}/mixture_vMF_d{d}_K{K}_kappa{kappa}/sampler_mixture_rwmh_indep/{filename}"
+
+            # Load samples: (chains, draws, dimensions)
+            file = load(filepath, gzip=True)
+            samples = np.array([file[chain]["samples"] for chain in file.keys()])
+
+            # Compute relative ESS
+            samples_az = az.convert_to_dataset(samples)
+            print(f"Calculating ESS for kappa = {kappa} and mix_prob ={mix_prob}")
+            ess_mix[f"kappa_{kappa}_mixprob_{mix_prob:.1f}"] = az.ess(
+                samples_az, relative=True
+            ).x.values
+
+    return ess_mix
 
 
 def ess_boxplot(d, K, kappas, path, savefig=True):
@@ -194,7 +268,7 @@ def ess_plot(
             ess_vals[method].append(ess_val)
 
     # fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    markers = ["8", "s", "^", "P"]
+    markers = ["8", "s", "^", "P", "*"]
     color_palette = sns.color_palette("deep", n_colors=len(METHODS))
     for i, method in enumerate(METHODS):
         label = ALGOS[method]
@@ -239,9 +313,6 @@ def plot_rejected_samples(d, K, kappas, path, ax=None):
         # normalized over 1e6 samples
         vals_reject.append(evals[kappa]["sss-reject"]["reject"][0] / 1e6)
         vals_shrink.append(evals[kappa]["sss-shrink"]["reject"][0] / 1e6)
-
-    print(vals_reject)
-    print(vals_shrink)
 
     # fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     markers = ["8", "s"]

@@ -179,6 +179,61 @@ class IndependenceSampler(MetropolisHastings):
         return sphere.radial_projection(x)
 
 
+class MixtureRWMHIndependenceSampler(MetropolisHastings):
+    """Mixture of Markov Kernel samplers that combines the well-tuned RWMH
+    (for local exploration) and the independence sampler with uniform proposal
+    (for global jump)
+    """
+
+    def __init__(
+        self,
+        distribution,
+        initial_state,
+        seed=None,
+        stepsize=1e-1,
+        mixing_probability=0.5,
+    ):
+        super().__init__(distribution, initial_state, seed, stepsize=stepsize)
+        self.alpha = mixing_probability
+        self.n_accept = 0
+        self.rwmh_counter = 0
+        self.indep_counter = 0
+        self.rwmh_stepsize_vals = []
+
+    def propose_rwmh(self):
+        """RWMH kernel from MetropolisHastings"""
+        return super().propose()
+
+    def propose_independence(self):
+        """Independence kernel from IndependenceSampler"""
+        return IndependenceSampler.propose(self)
+
+    def __next__(self):
+        # Choose proposal mechanism
+        use_rwmh = self.rng.random() < self.alpha
+
+        if use_rwmh:
+            state = self.propose_rwmh()
+            self.rwmh_counter += 1
+        else:
+            state = self.propose_independence()
+            self.indep_counter += 1
+
+        # Single accept/reject using single state
+        accepted = self.accept_reject(state)
+        self.n_accept += int(accepted)
+
+        # Adapt step size only for RWMH proposals (during burnin)
+        if use_rwmh:
+            self.adapt_stepsize(accepted)
+            self.rwmh_stepsize_vals.append(self.stepsize)
+
+        if accepted:
+            self.state = state  # Update single state
+
+        return np.copy(self.state)
+
+
 def project(x, v):
     """
     Project x into complement of v.
