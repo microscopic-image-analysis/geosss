@@ -1,0 +1,51 @@
+name: Update requirements.txt
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'poetry.lock'
+  push:
+    branches:
+      - main
+    paths:
+      - 'poetry.lock'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-requirements:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+      
+      - name: Export requirements.txt
+        run: |
+          poetry export -f requirements.txt --output requirements.txt --without-hashes
+      
+      - name: Check for changes
+        id: verify_diff
+        run: |
+          git diff --quiet requirements.txt || echo "changed=true" >> $GITHUB_OUTPUT
+      
+      - name: Commit and push if changed
+        if: steps.verify_diff.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add requirements.txt
+          git commit -m "Auto-update requirements.txt from poetry.lock"
+          git push
