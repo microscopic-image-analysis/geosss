@@ -76,6 +76,7 @@ However, first installing the package and it's *locked* dependencies is necessar
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
+git checkout v0.3.5 # version (for JMLR paper reprod.)
 ```
 
 2. You can now create a virtual environment (with `conda` for example),
