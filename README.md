@@ -14,7 +14,7 @@
 
 This python package implements the novel and efficient tuning-free MCMC based inference methods to sample distributions defined on the sphere as published in JMLR. This includes the two variants GeoSSS (reject) and GeoSSS (shrink), where the latter is much faster and therefore recommended for practical utility.
 
-In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (Lie et al., 2023) and Hamiltonian Monte Carlo (Lan et al., 2014). As demonstrated in our [paper](https://doi.org/10.48550/arXiv.2301.08056), the proposed samplers outperform RWMH and HMC for several challenging target distributions. 
+In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (RWMH) [Lie et al. 2023] and state-of-the-art Hamiltonian Monte Carlo [Lan et al. 2014]. As demonstrated in our [paper](https://doi.org/10.48550/arXiv.2301.08056), the proposed GeoSSS samplers outperform these baseline samplers for several challenging target distributions. 
 
 To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started quickly, install the package and follow along with the demo provided below. 
 
@@ -29,7 +29,7 @@ pip install geosss
 
 ## Minimal Example
 
-We consider a target that is a mixture of von Mises-Fisher distributions on $\mathbb{S}^2$ with concentration parameter $\kappa=$ 80. By using 1000 samples, our samplers geoSSS (reject) and geoSSS (shrink) explore all modes, whereas RWMH and HMC get stuck in a single mode. 
+As a demo, we consider a target that is a mixture of von Mises-Fisher distributions on $\mathbb{S}^2$ with concentration parameter $\kappa=$ 80. By considering a fixed computational budget of 1000 samples, our samplers manage to explore all modes, whereas RWMH and HMC get stuck in a single mode. 
 
 <p align="center">
 <img src="https://github.com/microscopic-image-analysis/geosss/blob/1ed528f2b708cfc8b88bd78bd8f210e6a0d6372a/assets/animation_vMF.gif" width="1000">
@@ -91,6 +91,16 @@ conda activate geosss-venv
 pip install -r requirements.txt
 pip install -e . --no-deps
 ```
+## References
+
+[Lie et al. 2023](https://doi.org/10.48550/arXiv.2112.12185): Lie, H. C., Rudolf, D., Sprungk, B., and Sullivan, T. J. (2023). “Dimension-independent Markov
+chain Monte Carlo on the sphere”. *Scandinavian Journal of Statistics* 5:4, pp. 1818–1858.
+
+[Lan et al. 2014](https://doi.org/10.48550/arXiv.1309.4289): Lan, S., Zhou, B., and Shahbaba, B. (2014). “Spherical Hamiltonian Monte Carlo for constrained
+target distributions”. In: *Proceedings of the 31st International Conference on Machine Learning.* Vol. 32.
+PMLR, pp. 629–637.
+
+
 
 ## Citation
 
@@ -105,4 +115,5 @@ If you use this package or ideas from the paper, please consider citing us.
       primaryClass={stat.ME}
 }
 ```
+
 
