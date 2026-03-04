@@ -14,7 +14,7 @@
 
 This python package implements the novel and efficient tuning-free MCMC based inference methods to sample distributions defined on the sphere as published in JMLR. This includes the two variants GeoSSS (reject) and GeoSSS (shrink), where the latter is much faster and therefore recommended for practical utility.
 
-In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (RWMH) [Lie et al. 2023] and state-of-the-art Hamiltonian Monte Carlo [Lan et al. 2014]. As demonstrated in our [paper](https://doi.org/10.48550/arXiv.2301.08056), the proposed GeoSSS samplers outperform these baseline samplers for several challenging target distributions. 
+In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (RWMH) [Lie et al. 2023] and state-of-the-art Hamiltonian Monte Carlo [Lan et al. 2014]. As demonstrated in our [paper](http://jmlr.org/papers/v26/23-1158.html), the proposed GeoSSS samplers outperform these baseline samplers for several challenging target distributions. 
 
 To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started quickly, install the package and follow along with the demo provided below. 
 
@@ -106,14 +106,17 @@ PMLR, pp. 629–637.
 
 If you use this package or ideas from the paper, please consider citing us.
 ```bash
-@misc{habeck2023,
-      title={Geodesic slice sampling on the sphere}, 
-      author={Michael Habeck and Mareike Hasenpflug and Shantanu Kodgirwar and Daniel Rudolf},
-      year={2023},
-      eprint={2301.08056},
-      archivePrefix={arXiv},
-      primaryClass={stat.ME}
+@article{JMLR:v26:23-1158,
+  author  = {Michael Habeck and Mareike Hasenpflug and Shantanu Kodgirwar and Daniel Rudolf},
+  title   = {Geodesic Slice Sampling on the Sphere},
+  journal = {Journal of Machine Learning Research},
+  year    = {2025},
+  volume  = {26},
+  number  = {297},
+  pages   = {1--38},
+  url     = {http://jmlr.org/papers/v26/23-1158.html}
 }
 ```
+
 
 
