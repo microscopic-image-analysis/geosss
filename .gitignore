@@ -24,3 +24,5 @@ ENV/
 
 # packaging
 dist/
+*.lock
+*.txt
