@@ -12,12 +12,14 @@
 
 # GeoSSS: Geodesic Slice Sampling on the Sphere
 
+> [!WARNING]
+> This package is not under active development anymore. However, it can still be installed and the publication results can also be reproduced.
+
 This python package implements the novel and efficient tuning-free MCMC based inference methods to sample distributions defined on the sphere as published in JMLR. This includes the two variants GeoSSS (reject) and GeoSSS (shrink), where the latter is much faster and therefore recommended for practical utility.
 
 In addition, the package also provides the implementation of the spherical variants of random-walk Metropolis-Hastings (RWMH) [Lie et al. 2023] and state-of-the-art Hamiltonian Monte Carlo [Lan et al. 2014]. As demonstrated in our [paper](http://jmlr.org/papers/v26/23-1158.html), the proposed GeoSSS samplers outperform these baseline samplers for several challenging target distributions. 
 
-To reproduce the results in the paper, see this [section](#development-and-reproducibility). However, to get started quickly, install the package and follow along with the demo provided below. 
-
+[**Installation**](#installation) | [**Minimal Example**](#minimal-example) | [**Publication Reproducibility**](#publication-reproducibility)
 
 ## Installation
 
@@ -65,7 +67,7 @@ samples = {name: cls(pdf, init_state, seed).sample(n_samples, burnin)
 ```
 See the notebook [`demo.ipynb`](demo.ipynb) for visualization of the samples.
 
-## Development and Reproducibility
+## Publication Reproducibility
 
 To reproduce results from the numerical illustrations section of the paper, check the [scripts](scripts/) directory. Precomputed results can also be downloaded from the [Science Data Bank](https://doi.org/10.57760/sciencedb.30181) and used with these scripts.
 
@@ -76,7 +78,7 @@ However, first installing the package and it's *locked* dependencies is necessar
 ```bash
 git clone https://github.com/microscopic-image-analysis/geosss.git
 cd geosss
-git checkout v0.3.5 # version (for JMLR paper reprod.)
+git checkout v0.3.5 # IMPORTANT for reproducibility
 ```
 
 2. You can now create a virtual environment (with `conda` for example),
