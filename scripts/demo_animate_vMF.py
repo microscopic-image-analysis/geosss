@@ -24,7 +24,7 @@ def show_sphere(pdf: gs.Distribution, n_grid: int = 1000):
         n_grid (int, optional): no. of grid on the sphere. Defaults to 1000.
 
     """
-    sph2cart, pdf_vals = gs.sphere_pdf(n_grid, pdf)
+    sph2cart, pdf_vals = sphere_pdf(n_grid, pdf)
     pdfnorm = Normalize(vmin=pdf_vals.min(), vmax=pdf_vals.max())
 
     fig, axes = plt.subplots(
@@ -42,7 +42,7 @@ def show_sphere(pdf: gs.Distribution, n_grid: int = 1000):
         ax.computed_zorder = False
         ax.plot_surface(
             *sph2cart,
-            facecolors=plt.cm.terrain_r(pdfnorm(pdf_vals)),
+            facecolors=plt.get_cmap("terrain_r")(pdfnorm(pdf_vals)),
             rstride=1,
             cstride=1,
             alpha=1.0,
@@ -155,7 +155,10 @@ def compare_samplers_3d(
     for ax, method in zip(axes.flat, methods):
         ax.computed_zorder = False
         ax.plot_surface(
-            *sph2cart, facecolors=plt.cm.terrain_r(pdfnorm(pdf_vals)), alpha=1, zorder=1
+            *sph2cart,
+            facecolors=plt.get_cmap("terrain_r")(pdfnorm(pdf_vals)),
+            alpha=1,
+            zorder=1,
         )
 
         x = samples[method]
@@ -220,4 +223,4 @@ if __name__ == "__main__":
         )
 
     # visualize samples in 3d
-    gs.compare_samplers_3d(pdf, samples)
+    compare_samplers_3d(pdf, samples)
